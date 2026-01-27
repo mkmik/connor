@@ -71,6 +71,10 @@ struct TerminalHostView: NSViewRepresentable {
 
         // Configure terminal options
         terminalView.optionAsMetaKey = true
+
+        // Light theme: white background, black text
+        terminalView.nativeBackgroundColor = .white
+        terminalView.nativeForegroundColor = .black
     }
 
     class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
@@ -104,6 +108,10 @@ struct ClaudeTerminalView: NSViewRepresentable {
         terminalView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         terminalView.optionAsMetaKey = true
         terminalView.processDelegate = context.coordinator
+
+        // Light theme: white background, black text
+        terminalView.nativeBackgroundColor = .white
+        terminalView.nativeForegroundColor = .black
 
         // Build environment as array of KEY=VALUE strings
         var env = ProcessInfo.processInfo.environment
