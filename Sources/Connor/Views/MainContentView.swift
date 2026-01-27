@@ -57,9 +57,14 @@ struct MainContentView: View {
                 }
             }
 
-            // Right: Open in menu
+            // Right-middle: Open in menu
             ToolbarItemGroup(placement: .primaryAction) {
                 OpenInMenuButton()
+            }
+
+            // Far right: Create MR button
+            ToolbarItem(placement: .confirmationAction) {
+                CreateMRButton()
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
