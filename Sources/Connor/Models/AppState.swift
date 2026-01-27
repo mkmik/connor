@@ -115,6 +115,13 @@ final class AppState: ObservableObject {
         }
         let newState = WorkspaceSessionState(workspaceId: workspaceId)
         sessionStates[workspaceId] = newState
+
+        // Auto-create a terminal pane for new workspace sessions
+        if let workspace = workspaces.first(where: { $0.id == workspaceId }),
+           let rootPath = workspace.rootPath {
+            _ = newState.createTerminal(workingDirectory: rootPath)
+        }
+
         return newState
     }
 
