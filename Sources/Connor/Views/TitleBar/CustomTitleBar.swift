@@ -92,6 +92,6 @@ struct NavigationButton: View {
 #Preview {
     CustomTitleBar()
         .environmentObject(AppState())
-        .frame(height: 52)
+        .frame(height: 38)
         .frame(width: 1200)
 }
