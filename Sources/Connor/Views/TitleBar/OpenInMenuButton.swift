@@ -2,7 +2,6 @@ import SwiftUI
 
 struct OpenInMenuButton: View {
     @EnvironmentObject var appState: AppState
-    @State private var isHovering = false
 
     private let workspaceManager = WorkspaceManager()
 
@@ -16,26 +15,11 @@ struct OpenInMenuButton: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
-                Text("Open")
-                    .font(.system(size: 13, weight: .medium))
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
-            }
-            .foregroundColor(.primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovering ? Color.secondary.opacity(0.15) : Color.clear)
-            )
+            Label("Open", systemImage: "arrow.up.forward.square")
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .onHover { hovering in
-            isHovering = hovering
-        }
+        .menuIndicator(.visible)
         .disabled(appState.selectedWorkspace == nil)
+        .help("Open workspace in external editor")
     }
 
     private func openInEditor(_ editor: ExternalEditor) {
