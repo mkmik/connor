@@ -1,0 +1,37 @@
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+*.xcuserstate
+*.xcscheme
+*.moved-aside
+DerivedData/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Package.resolved
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# App-specific
+*.app
+*.dmg
+*.zip
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Debug
+*.dSYM/
+*.dSYM.zip
+
+# Distribution
+/dist/

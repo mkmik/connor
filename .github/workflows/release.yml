@@ -1,0 +1,188 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: macos-14
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if this is a PR merge
+        id: check_merge
+        run: |
+          PARENT_COUNT=$(git rev-list --parents -n 1 HEAD | wc -w)
+          PARENT_COUNT=$((PARENT_COUNT - 1))
+          echo "parent_count=$PARENT_COUNT" >> $GITHUB_OUTPUT
+          if [ "$PARENT_COUNT" -gt 1 ]; then
+            echo "is_merge=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_merge=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get latest release version
+        if: steps.check_merge.outputs.is_merge == 'true'
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Fetching latest release..."
+          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+          echo "Latest tag: $LATEST_TAG"
+
+          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
+            echo "No previous releases found, starting with v0.1.0"
+            NEW_VERSION="v0.1.0"
+          else
+            VERSION=${LATEST_TAG#v}
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+            # Increment minor version, reset patch
+            NEW_MINOR=$((MINOR + 1))
+            NEW_VERSION="v${MAJOR}.${NEW_MINOR}.0"
+
+            echo "Previous version: $LATEST_TAG"
+          fi
+
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup Xcode
+        if: steps.check_merge.outputs.is_merge == 'true'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build release
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: |
+          echo "Building release..."
+          swift build -c release
+          echo "Build complete"
+
+      - name: Create app bundle
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: |
+          APP_NAME="Connor"
+          APP_BUNDLE="${APP_NAME}.app"
+          VERSION="${{ steps.version.outputs.new_version }}"
+          VERSION_NUMBER="${VERSION#v}"
+
+          echo "Creating app bundle for ${APP_NAME} version ${VERSION_NUMBER}..."
+
+          # Create app bundle structure
+          mkdir -p "${APP_BUNDLE}/Contents/MacOS"
+          mkdir -p "${APP_BUNDLE}/Contents/Resources"
+
+          # Copy executable
+          cp ".build/release/${APP_NAME}" "${APP_BUNDLE}/Contents/MacOS/"
+
+          # Create Info.plist
+          cat > "${APP_BUNDLE}/Contents/Info.plist" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>${APP_NAME}</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.connor.app</string>
+              <key>CFBundleName</key>
+              <string>${APP_NAME}</string>
+              <key>CFBundleDisplayName</key>
+              <string>${APP_NAME}</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${VERSION_NUMBER}</string>
+              <key>CFBundleVersion</key>
+              <string>${VERSION_NUMBER}</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>14.0</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+              <key>NSSupportsAutomaticGraphicsSwitching</key>
+              <true/>
+              <key>LSApplicationCategoryType</key>
+              <string>public.app-category.developer-tools</string>
+          </dict>
+          </plist>
+          EOF
+
+          # Create PkgInfo
+          echo -n "APPL????" > "${APP_BUNDLE}/Contents/PkgInfo"
+
+          echo "App bundle created"
+
+      - name: Code sign app bundle
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: |
+          echo "Code signing app bundle (ad-hoc)..."
+          codesign --force --deep --sign - "Connor.app"
+          echo "Verifying code signature..."
+          codesign --verify --verbose "Connor.app"
+          echo "Code signing complete"
+
+      - name: Create DMG
+        if: steps.check_merge.outputs.is_merge == 'true'
+        id: dmg
+        run: |
+          DMG_NAME="Connor-${{ steps.version.outputs.new_version }}.dmg"
+          echo "Creating DMG: ${DMG_NAME}..."
+
+          # Create temporary directory for DMG contents
+          mkdir -p dmg_contents
+          cp -R Connor.app dmg_contents/
+
+          # Create symbolic link to Applications folder
+          ln -s /Applications dmg_contents/Applications
+
+          # Create DMG
+          hdiutil create -volname "Connor" -srcfolder dmg_contents -ov -format UDZO "${DMG_NAME}"
+
+          echo "DMG created: ${DMG_NAME}"
+          echo "dmg_path=${DMG_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: steps.check_merge.outputs.is_merge == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.new_version }}"
+          DMG_PATH="${{ steps.dmg.outputs.dmg_path }}"
+
+          # Get commit message for release notes
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+
+          cat > release_notes.md << EOF
+          ## What's New
+
+          ${COMMIT_MSG}
+
+          ## Installation
+
+          1. Download \`${DMG_PATH}\` below
+          2. Open the DMG file
+          3. Drag Connor.app to your Applications folder
+          4. On first launch, you may need to right-click and select "Open" to bypass Gatekeeper
+
+          > **Note**: This release is ad-hoc signed and not notarized with Apple.
+          > On first launch, right-click the app and select "Open" to bypass the security warning.
+          EOF
+
+          gh release create "${VERSION}" \
+            "${DMG_PATH}" \
+            --title "Connor ${VERSION}" \
+            --notes-file release_notes.md
+
+          echo "Release ${VERSION} created"
