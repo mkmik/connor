@@ -13,6 +13,9 @@ final class AppState: ObservableObject {
     // Per-workspace session states (lazy, persists across workspace switches)
     @Published var sessionStates: [UUID: WorkspaceSessionState] = [:]
 
+    // Git diff stats per workspace (updated periodically)
+    @Published var workspaceDiffStats: [UUID: GitDiffStats] = [:]
+
     private let preferencesService = PreferencesService()
     private let workspaceStorage = WorkspaceStorageService()
 
@@ -35,6 +38,19 @@ final class AppState: ObservableObject {
     init() {
         loadPreferences()
         loadWorkspaces()
+        // Start refreshing git diff stats
+        refreshAllDiffStats()
+        startDiffStatsRefreshTimer()
+    }
+
+    private func startDiffStatsRefreshTimer() {
+        // Refresh diff stats every 5 seconds
+        Task { @MainActor [weak self] in
+            while true {
+                try? await Task.sleep(for: .seconds(5))
+                self?.refreshAllDiffStats()
+            }
+        }
     }
 
     func selectWorkspace(_ id: UUID?) {
@@ -116,6 +132,29 @@ final class AppState: ObservableObject {
         let newState = WorkspaceSessionState(workspaceId: workspaceId)
         sessionStates[workspaceId] = newState
         return newState
+    }
+
+    // MARK: - Git Status
+
+    func refreshAllDiffStats() {
+        let gitService = GitService()
+        for workspace in workspaces {
+            guard let rootPath = workspace.rootPath else { continue }
+            Task {
+                do {
+                    let stats = try await gitService.getDiffStats(at: rootPath)
+                    await MainActor.run {
+                        self.workspaceDiffStats[workspace.id] = stats
+                    }
+                } catch {
+                    // Silently ignore errors - just means no stats available
+                }
+            }
+        }
+    }
+
+    func diffStats(for workspaceId: UUID) -> GitDiffStats? {
+        workspaceDiffStats[workspaceId]
     }
 
     // MARK: - Persistence

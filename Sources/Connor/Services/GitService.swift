@@ -61,6 +61,18 @@ struct GitStatus {
     }
 }
 
+/// Git diff statistics (lines added/removed)
+struct GitDiffStats: Equatable {
+    let additions: Int
+    let deletions: Int
+
+    var hasChanges: Bool {
+        additions > 0 || deletions > 0
+    }
+
+    static let empty = GitDiffStats(additions: 0, deletions: 0)
+}
+
 /// Errors from git operations
 enum GitError: Error, LocalizedError {
     case notARepository
@@ -91,6 +103,7 @@ protocol GitServiceProtocol {
     func removeWorktree(at path: URL, sourceRepo: URL) async throws
     func getCurrentBranch(at path: URL) async throws -> String
     func getStatus(at path: URL) async throws -> GitStatus
+    func getDiffStats(at path: URL) async throws -> GitDiffStats
     func isGitRepository(_ path: URL) async -> Bool
 }
 
@@ -210,6 +223,133 @@ final class GitService: GitServiceProtocol {
             isClean: changes.isEmpty,
             changes: changes
         )
+    }
+
+    func getDiffStats(at path: URL) async throws -> GitDiffStats {
+        // Get diff stats comparing working tree to merge base with main/master
+        // First try to find the merge base with origin/main or origin/master
+        var baseBranch = "origin/main"
+
+        // Check if origin/main exists, otherwise try origin/master
+        let mainCheck = try await runGitCommand(["rev-parse", "--verify", "origin/main"], at: path)
+        if !mainCheck.success {
+            let masterCheck = try await runGitCommand(["rev-parse", "--verify", "origin/master"], at: path)
+            if masterCheck.success {
+                baseBranch = "origin/master"
+            } else {
+                // No remote tracking branch found, compare with HEAD
+                return try await getDiffStatsFromWorkingTree(at: path)
+            }
+        }
+
+        // Get merge base
+        let mergeBaseResult = try await runGitCommand(["merge-base", baseBranch, "HEAD"], at: path)
+        guard mergeBaseResult.success else {
+            return try await getDiffStatsFromWorkingTree(at: path)
+        }
+        let mergeBase = mergeBaseResult.output.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Get diff stats from merge base to working tree (includes uncommitted changes)
+        let result = try await runGitCommand(["diff", "--shortstat", mergeBase], at: path)
+
+        var stats = GitDiffStats.empty
+        if result.success {
+            stats = parseDiffStats(result.output)
+        }
+
+        // Also count lines in untracked files
+        let untrackedLines = try await countUntrackedFileLines(at: path)
+        return GitDiffStats(additions: stats.additions + untrackedLines, deletions: stats.deletions)
+    }
+
+    private func getDiffStatsFromWorkingTree(at path: URL) async throws -> GitDiffStats {
+        // Get stats for uncommitted changes only
+        let result = try await runGitCommand(["diff", "--shortstat", "HEAD"], at: path)
+        var stats = GitDiffStats.empty
+        if result.success {
+            stats = parseDiffStats(result.output)
+        }
+
+        // Also count lines in untracked files
+        let untrackedLines = try await countUntrackedFileLines(at: path)
+        return GitDiffStats(additions: stats.additions + untrackedLines, deletions: stats.deletions)
+    }
+
+    private func countUntrackedFileLines(at path: URL) async throws -> Int {
+        // Get list of untracked files (excluding ignored)
+        let result = try await runGitCommand(["ls-files", "--others", "--exclude-standard"], at: path)
+        guard result.success else { return 0 }
+
+        let files = result.output.components(separatedBy: .newlines).filter { !$0.isEmpty }
+        guard !files.isEmpty else { return 0 }
+
+        // Count lines in all untracked files using wc -l
+        var totalLines = 0
+        for file in files {
+            let filePath = path.appendingPathComponent(file)
+            // Skip directories and binary files
+            var isDirectory: ObjCBool = false
+            guard fileManager.fileExists(atPath: filePath.path, isDirectory: &isDirectory),
+                  !isDirectory.boolValue else { continue }
+
+            // Use wc -l to count lines
+            let wcResult = try await runCommand("/usr/bin/wc", arguments: ["-l", filePath.path])
+            if wcResult.success {
+                // wc output is like "    42 /path/to/file"
+                let trimmed = wcResult.output.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let lineCount = trimmed.split(separator: " ").first, let count = Int(lineCount) {
+                    totalLines += count
+                }
+            }
+        }
+
+        return totalLines
+    }
+
+    private func runCommand(_ executable: String, arguments: [String]) async throws -> CommandResult {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        let errorPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = errorPipe
+
+        try process.run()
+        process.waitUntilExit()
+
+        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+
+        let output = String(data: outputData, encoding: .utf8) ?? ""
+        let error = String(data: errorData, encoding: .utf8) ?? ""
+
+        return CommandResult(output: output, error: error, exitCode: process.terminationStatus)
+    }
+
+    private func parseDiffStats(_ output: String) -> GitDiffStats {
+        // Parse output like: " 3 files changed, 14 insertions(+), 18 deletions(-)"
+        var additions = 0
+        var deletions = 0
+
+        // Look for insertions
+        if let insertRange = output.range(of: #"(\d+) insertion"#, options: .regularExpression) {
+            let insertStr = output[insertRange]
+            if let num = insertStr.split(separator: " ").first, let count = Int(num) {
+                additions = count
+            }
+        }
+
+        // Look for deletions
+        if let deleteRange = output.range(of: #"(\d+) deletion"#, options: .regularExpression) {
+            let deleteStr = output[deleteRange]
+            if let num = deleteStr.split(separator: " ").first, let count = Int(num) {
+                deletions = count
+            }
+        }
+
+        return GitDiffStats(additions: additions, deletions: deletions)
     }
 
     func isGitRepository(_ path: URL) async -> Bool {
