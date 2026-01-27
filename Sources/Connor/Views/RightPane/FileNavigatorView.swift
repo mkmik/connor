@@ -187,6 +187,7 @@ struct FileItem: Identifiable, Hashable {
 }
 
 struct FileRow: View {
+    @EnvironmentObject var appState: AppState
     let file: FileItem
     let isExpanded: Bool
     let onToggleExpand: () -> Void
@@ -241,7 +242,8 @@ struct FileRow: View {
     }
 
     private func openFile(_ url: URL) {
-        NSWorkspace.shared.open(url)
+        guard let workspaceId = appState.selectedWorkspaceId else { return }
+        appState.sessionState(for: workspaceId).openFile(url)
     }
 }
 
