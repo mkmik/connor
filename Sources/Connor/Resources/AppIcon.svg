@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8825C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D97757;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="512" fill="#1a1a2e"/>
+
+  <!-- Center hub -->
+  <circle cx="512" cy="512" r="140" fill="url(#grad1)"/>
+
+  <!-- Lightning bolt rays - 12 rays at 30 degree intervals -->
+  <!-- Each lightning bolt has a zigzag pattern -->
+
+  <!-- Ray 1 - 0 degrees (right) -->
+  <path d="M 620 512 L 680 490 L 720 520 L 780 480 L 840 510 L 900 470 L 880 520 L 820 500 L 760 540 L 700 500 L 640 530 L 620 512 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 2 - 30 degrees -->
+  <path d="M 605 445 L 650 395 L 700 420 L 750 360 L 810 395 L 870 330 L 835 385 L 780 355 L 730 400 L 680 355 L 630 395 L 605 445 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 3 - 60 degrees -->
+  <path d="M 560 400 L 580 340 L 620 355 L 640 290 L 685 315 L 710 240 L 680 300 L 650 280 L 625 335 L 590 310 L 570 365 L 560 400 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 4 - 90 degrees (up) -->
+  <path d="M 512 380 L 490 320 L 520 280 L 480 220 L 510 160 L 470 100 L 520 150 L 500 200 L 540 250 L 500 300 L 530 350 L 512 380 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 5 - 120 degrees -->
+  <path d="M 464 400 L 444 340 L 404 355 L 384 290 L 339 315 L 314 240 L 344 300 L 374 280 L 399 335 L 434 310 L 454 365 L 464 400 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 6 - 150 degrees -->
+  <path d="M 419 445 L 374 395 L 324 420 L 274 360 L 214 395 L 154 330 L 189 385 L 244 355 L 294 400 L 344 355 L 394 395 L 419 445 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 7 - 180 degrees (left) -->
+  <path d="M 404 512 L 344 490 L 304 520 L 244 480 L 184 510 L 124 470 L 144 520 L 204 500 L 264 540 L 324 500 L 384 530 L 404 512 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 8 - 210 degrees -->
+  <path d="M 419 579 L 374 629 L 324 604 L 274 664 L 214 629 L 154 694 L 189 639 L 244 669 L 294 624 L 344 669 L 394 629 L 419 579 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 9 - 240 degrees -->
+  <path d="M 464 624 L 444 684 L 404 669 L 384 734 L 339 709 L 314 784 L 344 724 L 374 744 L 399 689 L 434 714 L 454 659 L 464 624 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 10 - 270 degrees (down) -->
+  <path d="M 512 644 L 490 704 L 520 744 L 480 804 L 510 864 L 470 924 L 520 874 L 500 824 L 540 774 L 500 724 L 530 674 L 512 644 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 11 - 300 degrees -->
+  <path d="M 560 624 L 580 684 L 620 669 L 640 734 L 685 709 L 710 784 L 680 724 L 650 744 L 625 689 L 590 714 L 570 659 L 560 624 Z" fill="url(#grad1)"/>
+
+  <!-- Ray 12 - 330 degrees -->
+  <path d="M 605 579 L 650 629 L 700 604 L 750 664 L 810 629 L 870 694 L 835 639 L 780 669 L 730 624 L 680 669 L 630 629 L 605 579 Z" fill="url(#grad1)"/>
+</svg>

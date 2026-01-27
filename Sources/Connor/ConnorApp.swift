@@ -58,6 +58,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Ensure the app has a proper activation policy for menu bar
         NSApp.setActivationPolicy(.regular)
+
+        // Set the app icon from bundle resources
+        if let iconImage = NSImage(named: "AppIcon") {
+            NSApp.applicationIconImage = iconImage
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

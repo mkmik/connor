@@ -168,6 +168,7 @@ final class PreferencesTests: XCTestCase {
         XCTAssertEqual(prefs.maxRecentRepos, 10)
         XCTAssertEqual(prefs.preferredEditor, .cursor)
         XCTAssertEqual(prefs.theme, .system)
+        XCTAssertEqual(prefs.branchNamePrefix, "connor")
     }
 
     func testAddRecentRepository() {
