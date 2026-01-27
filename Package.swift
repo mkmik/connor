@@ -20,7 +20,10 @@ let package = Package(
         .executableTarget(
             name: "Connor",
             dependencies: ["SwiftTerm"],
-            path: "Sources/Connor"
+            path: "Sources/Connor",
+            resources: [
+                .process("Resources/Assets.xcassets")
+            ]
         ),
         .testTarget(
             name: "ConnorTests",

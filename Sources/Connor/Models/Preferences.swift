@@ -52,6 +52,7 @@ struct Preferences: Codable, Equatable {
     var defaultShell: String
     var gitlabURL: URL?
     var gitlabToken: String?
+    var branchNamePrefix: String
 
     static var `default`: Preferences {
         Preferences(
@@ -65,7 +66,8 @@ struct Preferences: Codable, Equatable {
             maxCityNameHistory: 50,
             defaultShell: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh",
             gitlabURL: nil,
-            gitlabToken: nil
+            gitlabToken: nil,
+            branchNamePrefix: "connor"
         )
     }
 

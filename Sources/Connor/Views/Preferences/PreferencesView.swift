@@ -38,6 +38,7 @@ struct GeneralPreferencesTab: View {
     @State private var connorDirectory: String = ""
     @State private var selectedEditor: ExternalEditor = .cursor
     @State private var selectedTheme: AppTheme = .system
+    @State private var branchPrefix: String = ""
 
     var body: some View {
         Form {
@@ -56,6 +57,17 @@ struct GeneralPreferencesTab: View {
                     .foregroundColor(.secondary)
             } header: {
                 Text("Storage")
+            }
+
+            Section {
+                TextField("Branch Prefix", text: $branchPrefix)
+                    .textFieldStyle(.roundedBorder)
+
+                Text("Git branches will be named <prefix>/<workspace-name>")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text("Git")
             }
 
             Section {
@@ -90,6 +102,7 @@ struct GeneralPreferencesTab: View {
             connorDirectory = appState.preferences.connorRootDirectory.path
             selectedEditor = appState.preferences.preferredEditor
             selectedTheme = appState.preferences.theme
+            branchPrefix = appState.preferences.branchNamePrefix
         }
         .onChange(of: selectedEditor) { newValue in
             appState.preferences.preferredEditor = newValue
@@ -97,6 +110,10 @@ struct GeneralPreferencesTab: View {
         }
         .onChange(of: selectedTheme) { newValue in
             appState.preferences.theme = newValue
+            appState.savePreferences()
+        }
+        .onChange(of: branchPrefix) { newValue in
+            appState.preferences.branchNamePrefix = newValue
             appState.savePreferences()
         }
     }

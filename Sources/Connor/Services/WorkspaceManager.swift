@@ -72,7 +72,7 @@ final class WorkspaceManager: WorkspaceManagerProtocol {
         let worktreePath = preferences.connorRootDirectory.appendingPathComponent(worktreeDirName)
 
         // Create branch name
-        let branchName = "connor/\(worktreeDirName)"
+        let branchName = "\(preferences.branchNamePrefix)/\(worktreeDirName)"
 
         // Create the worktree
         try await gitService.createWorktree(from: sourceRepo, at: worktreePath, branch: branchName)
