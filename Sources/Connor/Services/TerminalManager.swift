@@ -158,21 +158,19 @@ final class TerminalManager: ObservableObject {
                 execName: "claude"
             )
         } else {
-            // Start regular shell
+            // Start regular shell via exec (clean startup without visible cd command)
             let shell = command ?? (env["SHELL"] ?? "/bin/zsh")
-            let executablePath = shell.hasPrefix("/") ? shell : "/usr/bin/env"
-            let execArgs = shell.hasPrefix("/") ? arguments : [shell] + arguments
+
+            // Shell-escape arguments using single quotes
+            let quotedArgs = arguments.map { "'" + $0.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+            let argsStr = quotedArgs.isEmpty ? "" : " " + quotedArgs.joined(separator: " ")
 
             terminalView.startProcess(
-                executable: executablePath,
-                args: execArgs,
+                executable: "/bin/zsh",
+                args: ["-c", "cd \"\(workingDirectory.path)\" && exec \(shell)\(argsStr)"],
                 environment: envStrings,
                 execName: shell
             )
-
-            // Change to working directory
-            let cdCommand = "cd \"\(workingDirectory.path)\" && clear\n"
-            terminalView.send(txt: cdCommand)
         }
 
         return terminalView
