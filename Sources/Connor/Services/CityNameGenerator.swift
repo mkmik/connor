@@ -22,6 +22,21 @@ final class CityNameGenerator: CityNameGeneratorProtocol {
         "Stockholm", "Oslo", "Copenhagen", "Helsinki", "Brussels", "Zurich", "Geneva",
         "Munich", "Milan", "Venice", "Florence", "Lyon", "Marseille", "Porto", "Seville",
         "Krakow", "Split", "Dubrovnik", "Reykjavik", "Tallinn", "Riga", "Vilnius",
+        // Italy - additional cities
+        "Pisa", "Naples", "Turin", "Bologna", "Genoa", "Palermo", "Verona", "Bari",
+        "Siena", "Perugia", "Parma", "Trieste", "Catania", "Modena",
+        // France - additional cities
+        "Nice", "Bordeaux", "Toulouse", "Strasbourg", "Nantes", "Lille",
+        // Germany - additional cities
+        "Hamburg", "Frankfurt", "Cologne", "Dresden", "Leipzig", "Nuremberg",
+        // Spain - additional cities
+        "Valencia", "Granada", "Malaga", "Bilbao", "Zaragoza",
+        // Belgium & Netherlands
+        "Antwerp", "Ghent", "Bruges", "Rotterdam", "Utrecht",
+        // Austria & Switzerland
+        "Salzburg", "Innsbruck", "Basel", "Lucerne",
+        // Scandinavia - additional
+        "Bergen", "Gothenburg", "Malmo",
         // North America
         "Austin", "Denver", "Seattle", "Portland", "Boston", "Chicago", "Phoenix",
         "Montreal", "Vancouver", "Toronto", "Miami", "Nashville", "Atlanta", "Dallas",
