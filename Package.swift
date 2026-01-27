@@ -21,6 +21,9 @@ let package = Package(
             name: "Connor",
             dependencies: ["SwiftTerm"],
             path: "Sources/Connor",
+            exclude: [
+                "Resources/AppIcon.svg"
+            ],
             resources: [
                 .process("Resources/Assets.xcassets")
             ]

@@ -82,7 +82,7 @@ struct RightPane: View {
                             command: selectedTerminal.command,
                             arguments: selectedTerminal.arguments
                         )
-                    } else if let path = selectedWorkspace?.rootPath {
+                    } else if selectedWorkspace?.rootPath != nil {
                         // Default terminal prompt view
                         VStack {
                             Spacer()
