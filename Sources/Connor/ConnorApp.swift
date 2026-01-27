@@ -12,7 +12,7 @@ struct ConnorApp: App {
                 .frame(minWidth: 1200, minHeight: 700)
         }
         .windowStyle(.titleBar)
-        .windowToolbarStyle(.unified(showsTitle: false))
+        .windowToolbarStyle(.unifiedCompact(showsTitle: false))
         .defaultSize(width: 1400, height: 900)
         .commands {
             // File menu
