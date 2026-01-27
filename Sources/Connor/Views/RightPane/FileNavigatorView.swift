@@ -12,7 +12,7 @@ struct FileNavigatorView: View {
 
     var body: some View {
         Group {
-            if let root = rootPath {
+            if rootPath != nil {
                 if isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -46,8 +46,8 @@ struct FileNavigatorView: View {
                 )
             }
         }
-        .onChange(of: rootPath) { newPath in
-            if let path = newPath {
+        .onChange(of: rootPath) {
+            if let path = rootPath {
                 loadFiles(at: path)
             } else {
                 files = []

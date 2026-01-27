@@ -60,8 +60,8 @@ struct GitChangesView: View {
                 )
             }
         }
-        .onChange(of: rootPath) { newPath in
-            if let path = newPath {
+        .onChange(of: rootPath) {
+            if let path = rootPath {
                 loadStatus(at: path)
             } else {
                 gitStatus = nil

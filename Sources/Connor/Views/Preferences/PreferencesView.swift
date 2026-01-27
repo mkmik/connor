@@ -104,16 +104,16 @@ struct GeneralPreferencesTab: View {
             selectedTheme = appState.preferences.theme
             branchPrefix = appState.preferences.branchNamePrefix
         }
-        .onChange(of: selectedEditor) { newValue in
-            appState.preferences.preferredEditor = newValue
+        .onChange(of: selectedEditor) {
+            appState.preferences.preferredEditor = selectedEditor
             appState.savePreferences()
         }
-        .onChange(of: selectedTheme) { newValue in
-            appState.preferences.theme = newValue
+        .onChange(of: selectedTheme) {
+            appState.preferences.theme = selectedTheme
             appState.savePreferences()
         }
-        .onChange(of: branchPrefix) { newValue in
-            appState.preferences.branchNamePrefix = newValue
+        .onChange(of: branchPrefix) {
+            appState.preferences.branchNamePrefix = branchPrefix
             appState.savePreferences()
         }
     }
