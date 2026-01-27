@@ -38,21 +38,19 @@ struct TerminalHostView: NSViewRepresentable {
         }
         let envStrings = env.map { "\($0.key)=\($0.value)" }
 
-        // Start the process
+        // Start the process via exec (clean startup without visible cd command)
         let shell = command.isEmpty ? (env["SHELL"] ?? "/bin/zsh") : command
-        let executablePath = shell.hasPrefix("/") ? shell : "/usr/bin/env"
-        let execArgs = shell.hasPrefix("/") ? arguments : [shell] + arguments
+
+        // Shell-escape arguments using single quotes
+        let quotedArgs = arguments.map { "'" + $0.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        let argsStr = quotedArgs.isEmpty ? "" : " " + quotedArgs.joined(separator: " ")
 
         terminalView.startProcess(
-            executable: executablePath,
-            args: execArgs,
+            executable: "/bin/zsh",
+            args: ["-c", "cd \"\(workingDirectory.path)\" && exec \(shell)\(argsStr)"],
             environment: envStrings,
             execName: shell
         )
-
-        // Change to working directory
-        let cdCommand = "cd \"\(workingDirectory.path)\" && clear\n"
-        terminalView.send(txt: cdCommand)
 
         return terminalView
     }
