@@ -21,8 +21,10 @@ struct ClaudeSessionPane: View {
             // Terminal content
             if let workspace = appState.selectedWorkspace,
                let rootPath = workspace.rootPath {
-                ClaudeTerminalView(workingDirectory: rootPath)
-                    .id(workspace.id)  // Force recreation when workspace changes
+                PersistentClaudeTerminalView(
+                    workspaceId: workspace.id,
+                    workingDirectory: rootPath
+                )
             } else {
                 EmptyStateView(
                     icon: "terminal",

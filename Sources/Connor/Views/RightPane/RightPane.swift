@@ -75,9 +75,12 @@ struct RightPane: View {
                     Divider()
 
                     // Terminal content
-                    if let selectedTerminal = session.additionalTerminals.first(where: { $0.id == session.selectedTerminalId }),
+                    if let workspace = selectedWorkspace,
+                       let selectedTerminal = session.additionalTerminals.first(where: { $0.id == session.selectedTerminalId }),
                        let workingDir = selectedTerminal.workingDirectory {
-                        TerminalHostView(
+                        PersistentAdditionalTerminalView(
+                            workspaceId: workspace.id,
+                            terminalId: selectedTerminal.id,
                             workingDirectory: workingDir,
                             command: selectedTerminal.command,
                             arguments: selectedTerminal.arguments

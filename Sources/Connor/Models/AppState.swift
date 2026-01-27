@@ -79,6 +79,9 @@ final class AppState: ObservableObject {
         sessionStates.removeValue(forKey: workspace.id)
         navigationHistory.remove(workspace.id)
 
+        // Clean up persistent terminals for this workspace
+        TerminalManager.shared.removeTerminals(for: workspace.id)
+
         // Select another workspace if the deleted one was selected
         if selectedWorkspaceId == workspace.id {
             selectedWorkspaceId = sortedWorkspaces.first?.id
@@ -156,6 +159,9 @@ final class WorkspaceSessionState: ObservableObject, Identifiable {
     }
 
     func closeTerminal(_ id: UUID) {
+        // Clean up the persistent terminal
+        TerminalManager.shared.removeTerminal(for: self.id, terminalId: id)
+
         additionalTerminals.removeAll { $0.id == id }
         if selectedTerminalId == id {
             selectedTerminalId = additionalTerminals.last?.id
