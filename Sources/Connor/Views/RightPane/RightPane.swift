@@ -98,7 +98,11 @@ struct TerminalSection: View {
                     terminalId: selectedTerminal.id,
                     workingDirectory: workingDir,
                     command: selectedTerminal.command,
-                    arguments: selectedTerminal.arguments
+                    arguments: selectedTerminal.arguments,
+                    onFocusGained: {
+                        session.focusedTerminalArea = .additionalTerminal
+                    },
+                    shouldRestoreFocus: session.focusedTerminalArea == .additionalTerminal
                 )
             } else if workspace.rootPath != nil {
                 // Default terminal prompt view

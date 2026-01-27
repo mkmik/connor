@@ -154,11 +154,14 @@ struct ClaudeTerminalView: NSViewRepresentable {
 struct PersistentClaudeTerminalView: NSViewRepresentable {
     let workspaceId: UUID
     let workingDirectory: URL
+    var onFocusGained: (() -> Void)?
+    var shouldRestoreFocus: Bool = false
 
     func makeNSView(context: Context) -> NSView {
         // Create a container view that will host the terminal
         let containerView = TerminalContainerView()
         containerView.autoresizesSubviews = true
+        containerView.onFocusGained = onFocusGained
 
         // Update the current workspace in the manager
         TerminalManager.shared.currentWorkspaceId = workspaceId
@@ -182,11 +185,21 @@ struct PersistentClaudeTerminalView: NSViewRepresentable {
             terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
         ])
 
+        // Restore focus if needed
+        if shouldRestoreFocus {
+            DispatchQueue.main.async {
+                terminalView.window?.makeFirstResponder(terminalView)
+            }
+        }
+
         return containerView
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         guard let containerView = nsView as? TerminalContainerView else { return }
+
+        // Update focus callback
+        containerView.onFocusGained = onFocusGained
 
         // Update the current workspace in the manager
         TerminalManager.shared.currentWorkspaceId = workspaceId
@@ -211,6 +224,13 @@ struct PersistentClaudeTerminalView: NSViewRepresentable {
                 terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
                 terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
             ])
+
+            // Restore focus if needed after swap
+            if shouldRestoreFocus {
+                DispatchQueue.main.async {
+                    terminalView.window?.makeFirstResponder(terminalView)
+                }
+            }
         }
 
         // Ensure terminal is properly sized
@@ -250,10 +270,13 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
     let workingDirectory: URL
     let command: String
     let arguments: [String]
+    var onFocusGained: (() -> Void)?
+    var shouldRestoreFocus: Bool = false
 
     func makeNSView(context: Context) -> NSView {
         let containerView = TerminalContainerView()
         containerView.autoresizesSubviews = true
+        containerView.onFocusGained = onFocusGained
 
         let terminalView = TerminalManager.shared.additionalTerminal(
             for: workspaceId,
@@ -275,11 +298,21 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
             terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
         ])
 
+        // Restore focus if needed
+        if shouldRestoreFocus {
+            DispatchQueue.main.async {
+                terminalView.window?.makeFirstResponder(terminalView)
+            }
+        }
+
         return containerView
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         guard let containerView = nsView as? TerminalContainerView else { return }
+
+        // Update focus callback
+        containerView.onFocusGained = onFocusGained
 
         let terminalView = TerminalManager.shared.additionalTerminal(
             for: workspaceId,
@@ -302,6 +335,13 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
                 terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
                 terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
             ])
+
+            // Restore focus if needed after swap
+            if shouldRestoreFocus {
+                DispatchQueue.main.async {
+                    terminalView.window?.makeFirstResponder(terminalView)
+                }
+            }
         }
 
         terminalView.frame = containerView.bounds
@@ -325,6 +365,12 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
 /// Container NSView that holds a terminal and tracks it for swapping.
 private class TerminalContainerView: NSView {
     weak var hostedTerminal: LocalProcessTerminalView?
+    var onFocusGained: (() -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        onFocusGained?()
+        super.mouseDown(with: event)
+    }
 }
 
 #Preview {

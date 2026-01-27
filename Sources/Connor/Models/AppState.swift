@@ -137,6 +137,12 @@ final class AppState: ObservableObject {
     }
 }
 
+/// Which terminal area has focus in a workspace
+enum FocusedTerminalArea: String {
+    case claude
+    case additionalTerminal
+}
+
 /// State for a single workspace's session
 @MainActor
 final class WorkspaceSessionState: ObservableObject, Identifiable {
@@ -146,6 +152,7 @@ final class WorkspaceSessionState: ObservableObject, Identifiable {
     @Published var additionalTerminals: [TerminalSessionState] = []
     @Published var selectedRightPaneTab: RightPaneTab = .files
     @Published var selectedTerminalId: UUID?
+    @Published var focusedTerminalArea: FocusedTerminalArea = .claude
 
     init(workspaceId: UUID) {
         self.id = workspaceId

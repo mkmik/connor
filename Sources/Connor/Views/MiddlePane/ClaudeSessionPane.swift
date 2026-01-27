@@ -4,6 +4,11 @@ struct ClaudeSessionPane: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedTab = 0
 
+    var sessionState: WorkspaceSessionState? {
+        guard let id = appState.selectedWorkspaceId else { return nil }
+        return appState.sessionState(for: id)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Tab bar (for future multi-tab support)
@@ -20,10 +25,15 @@ struct ClaudeSessionPane: View {
 
             // Terminal content
             if let workspace = appState.selectedWorkspace,
-               let rootPath = workspace.rootPath {
+               let rootPath = workspace.rootPath,
+               let session = sessionState {
                 PersistentClaudeTerminalView(
                     workspaceId: workspace.id,
-                    workingDirectory: rootPath
+                    workingDirectory: rootPath,
+                    onFocusGained: {
+                        session.focusedTerminalArea = .claude
+                    },
+                    shouldRestoreFocus: session.focusedTerminalArea == .claude
                 )
             } else {
                 EmptyStateView(
