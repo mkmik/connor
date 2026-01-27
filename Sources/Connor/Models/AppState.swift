@@ -154,6 +154,10 @@ final class WorkspaceSessionState: ObservableObject, Identifiable {
     @Published var selectedTerminalId: UUID?
     @Published var focusedTerminalArea: FocusedTerminalArea = .claude
 
+    // Middle pane file viewer tabs
+    @Published var openFileTabs: [URL] = []
+    @Published var selectedMiddlePaneTab: MiddlePaneTab = .claude
+
     init(workspaceId: UUID) {
         self.id = workspaceId
     }
@@ -173,6 +177,26 @@ final class WorkspaceSessionState: ObservableObject, Identifiable {
         if selectedTerminalId == id {
             selectedTerminalId = additionalTerminals.last?.id
         }
+    }
+
+    func openFile(_ url: URL) {
+        // If file is already open, just switch to it
+        if !openFileTabs.contains(url) {
+            openFileTabs.append(url)
+        }
+        selectedMiddlePaneTab = .file(url)
+    }
+
+    func closeFileTab(_ url: URL) {
+        openFileTabs.removeAll { $0 == url }
+        // If we closed the selected tab, switch to Claude or another file
+        if case .file(let selectedUrl) = selectedMiddlePaneTab, selectedUrl == url {
+            selectedMiddlePaneTab = openFileTabs.last.map { .file($0) } ?? .claude
+        }
+    }
+
+    func selectTab(_ tab: MiddlePaneTab) {
+        selectedMiddlePaneTab = tab
     }
 }
 
@@ -213,6 +237,48 @@ enum RightPaneTab: String, CaseIterable, Identifiable {
         case .files: return "folder"
         case .changes: return "arrow.triangle.branch"
         case .checks: return "checkmark.circle"
+        }
+    }
+}
+
+/// Tabs in the middle pane (Claude session + file viewers)
+enum MiddlePaneTab: Identifiable, Hashable {
+    case claude
+    case file(URL)
+
+    var id: String {
+        switch self {
+        case .claude:
+            return "claude"
+        case .file(let url):
+            return url.absoluteString
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .claude:
+            return "Claude"
+        case .file(let url):
+            return url.lastPathComponent
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .claude:
+            return "sparkle"
+        case .file(let url):
+            let ext = url.pathExtension.lowercased()
+            switch ext {
+            case "swift": return "swift"
+            case "js", "ts", "jsx", "tsx": return "curlybraces"
+            case "py": return "chevron.left.forwardslash.chevron.right"
+            case "json", "yaml", "yml": return "doc.text"
+            case "md", "txt": return "doc.plaintext"
+            case "png", "jpg", "jpeg", "gif", "svg": return "photo"
+            default: return "doc"
+            }
         }
     }
 }
