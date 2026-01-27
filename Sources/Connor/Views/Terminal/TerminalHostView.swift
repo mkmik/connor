@@ -119,17 +119,15 @@ struct ClaudeTerminalView: NSViewRepresentable {
         env["LANG"] = "en_US.UTF-8"
         let envStrings = env.map { "\($0.key)=\($0.value)" }
 
-        // Start claude directly
-        // Use /usr/bin/env to find claude in PATH
+        // Start claude via shell to ensure correct working directory
+        // SwiftTerm doesn't support setting working directory on process start,
+        // so we use a shell to cd first, then exec claude
         terminalView.startProcess(
-            executable: "/usr/bin/env",
-            args: ["claude"],
+            executable: "/bin/zsh",
+            args: ["-c", "cd \"\(workingDirectory.path)\" && exec claude"],
             environment: envStrings,
             execName: "claude"
         )
-
-        // Change to working directory first
-        terminalView.send(txt: "cd \"\(workingDirectory.path)\"\n")
 
         return terminalView
     }
