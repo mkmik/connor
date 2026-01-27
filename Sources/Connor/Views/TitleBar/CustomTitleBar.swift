@@ -48,9 +48,10 @@ struct CustomTitleBar: View {
             Divider()
                 .frame(height: 24)
 
-            // Right section: Open in menu
-            HStack {
+            // Right section: Create MR button and Open in menu
+            HStack(spacing: 12) {
                 Spacer()
+                CreateMRButton()
                 OpenInMenuButton()
             }
             .frame(width: 350)

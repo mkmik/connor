@@ -231,9 +231,11 @@ struct PersistentClaudeTerminalView: NSViewRepresentable {
             }
         }
 
-        // Ensure terminal is properly sized
-        terminalView.frame = containerView.bounds
-        terminalView.needsLayout = true
+        // Request layout update on next run loop iteration to avoid
+        // calling needsLayout during an active layout cycle
+        DispatchQueue.main.async {
+            terminalView.needsLayout = true
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -342,8 +344,11 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
             }
         }
 
-        terminalView.frame = containerView.bounds
-        terminalView.needsLayout = true
+        // Request layout update on next run loop iteration to avoid
+        // calling needsLayout during an active layout cycle
+        DispatchQueue.main.async {
+            terminalView.needsLayout = true
+        }
     }
 
     func makeCoordinator() -> Coordinator {
