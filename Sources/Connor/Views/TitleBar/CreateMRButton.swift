@@ -42,9 +42,8 @@ struct CreateMRButton: View {
                     .frame(height: 22)
             case .noMR:
                 createMRButton
-            case .hasMR:
-                // Don't show anything if MR already exists
-                EmptyView()
+            case .hasMR(let mr):
+                viewMRButton(mr: mr)
             case .error, .notConfigured:
                 // Don't show if there's an error or not configured
                 EmptyView()
@@ -59,6 +58,22 @@ struct CreateMRButton: View {
                 await checkMRStatus()
             }
         }
+    }
+
+    private func viewMRButton(mr: GitLabMergeRequest) -> some View {
+        Button {
+            if let url = URL(string: mr.webUrl) {
+                NSWorkspace.shared.open(url)
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.triangle.pull")
+                Text("View MR")
+            }
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .help("Open Merge Request in browser")
     }
 
     private var createMRButton: some View {

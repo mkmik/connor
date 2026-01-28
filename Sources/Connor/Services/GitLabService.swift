@@ -102,8 +102,17 @@ final class GitLabService {
         return output?.isEmpty == true ? nil : output
     }
 
-    /// Checks if an MR exists for the given branch
+    /// Checks if an MR exists for the given branch (open or merged)
     func checkMRExists(projectPath: String, branch: String) async throws -> GitLabMergeRequest? {
+        // First check for open MRs, then fall back to merged MRs
+        if let openMR = try await fetchMR(projectPath: projectPath, branch: branch, state: "opened") {
+            return openMR
+        }
+        return try await fetchMR(projectPath: projectPath, branch: branch, state: "merged")
+    }
+
+    /// Fetches MRs for a given branch and state
+    private func fetchMR(projectPath: String, branch: String, state: String) async throws -> GitLabMergeRequest? {
         let prefs = preferences()
 
         guard let baseURL = prefs.gitlabURL, let token = prefs.gitlabToken, !token.isEmpty else {
@@ -130,7 +139,7 @@ final class GitLabService {
         var components = URLComponents(url: apiURL, resolvingAgainstBaseURL: false)!
         components.queryItems = [
             URLQueryItem(name: "source_branch", value: branch),
-            URLQueryItem(name: "state", value: "opened"),
+            URLQueryItem(name: "state", value: state),
         ]
 
         guard let url = components.url else {
