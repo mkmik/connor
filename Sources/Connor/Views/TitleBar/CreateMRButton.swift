@@ -143,7 +143,41 @@ struct CreateMRButton: View {
     }
 
     private func createMR() {
-        print("TODO")
+        guard let gitlabURL = appState.preferences.gitlabURL,
+              let workspace = appState.selectedWorkspace,
+              let rootPath = workspace.rootPath,
+              let branch = workspace.currentBranch else {
+            return
+        }
+
+        Task {
+            guard let remoteURL = try? await gitLabService.getRemoteURL(at: rootPath),
+                  let projectPath = gitLabService.extractProjectPath(from: remoteURL) else {
+                return
+            }
+
+            // Push the branch to remote before opening the MR page
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["push", "--force-with-lease", "-u", "origin", branch]
+            process.currentDirectoryURL = rootPath
+            process.standardOutput = Pipe()
+            process.standardError = Pipe()
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+            } catch {
+                print("[CreateMRButton] Failed to push branch: \(error)")
+            }
+
+            // GitLab new MR URL format: {baseURL}/{project}/-/merge_requests/new?merge_request[source_branch]={branch}
+            let urlString = "\(gitlabURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/")))/\(projectPath)/-/merge_requests/new?merge_request[source_branch]=\(branch)"
+
+            if let url = URL(string: urlString) {
+                NSWorkspace.shared.open(url)
+            }
+        }
     }
 }
 
