@@ -1,5 +1,17 @@
 import Foundation
 
+/// Represents a GitLab pipeline status
+struct GitLabPipeline: Codable {
+    let id: Int
+    let status: String
+    let webUrl: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, status
+        case webUrl = "web_url"
+    }
+}
+
 /// Represents a GitLab Merge Request
 struct GitLabMergeRequest: Codable, Identifiable {
     let id: Int
@@ -7,10 +19,28 @@ struct GitLabMergeRequest: Codable, Identifiable {
     let title: String
     let state: String
     let webUrl: String
+    let headPipeline: GitLabPipeline?
 
     enum CodingKeys: String, CodingKey {
         case id, iid, title, state
         case webUrl = "web_url"
+        case headPipeline = "head_pipeline"
+    }
+
+    /// Whether this MR has been merged
+    var isMerged: Bool {
+        state == "merged"
+    }
+
+    /// Whether the pipeline completed successfully
+    var hasPipelineSuccess: Bool {
+        headPipeline?.status == "success"
+    }
+
+    /// Whether the pipeline is currently running
+    var hasPipelineRunning: Bool {
+        guard let status = headPipeline?.status else { return false }
+        return status == "running" || status == "pending"
     }
 }
 

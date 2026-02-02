@@ -70,10 +70,30 @@ struct CreateMRButton: View {
                 Image(systemName: "arrow.triangle.pull")
                 Text("View MR")
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(buttonColor(for: mr))
+            .foregroundColor(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
+        .buttonStyle(.plain)
         .help("Open Merge Request in browser")
+    }
+
+    private func buttonColor(for mr: GitLabMergeRequest) -> Color {
+        if mr.isMerged {
+            // GitHub "merged" purple palette
+            return Color(red: 137/255, green: 87/255, blue: 229/255)  // #8957e5
+        } else if mr.hasPipelineSuccess {
+            // Green for successful pipeline
+            return Color.green
+        } else if mr.hasPipelineRunning {
+            // Orange for pipeline in progress
+            return Color.orange
+        } else {
+            // Default accent color for open MRs
+            return Color.accentColor
+        }
     }
 
     private var createMRButton: some View {
