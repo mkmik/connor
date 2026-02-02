@@ -1,0 +1,48 @@
+import AppKit
+import SwiftUI
+
+/// Three-pane split view controller with sidebar, content, and detail regions
+class MainSplitViewController: NSSplitViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        splitView.isVertical = true
+        splitView.dividerStyle = .thin
+
+        // Sidebar (collapsible, left)
+        let sidebarVC = NSHostingController(
+            rootView: WorkspaceListPane().environmentObject(AppState.shared)
+        )
+        let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarVC)
+        sidebarItem.minimumThickness = 180
+        sidebarItem.maximumThickness = 300
+        sidebarItem.canCollapse = true
+
+        // Content (middle)
+        let contentVC = NSHostingController(
+            rootView: ClaudeSessionPane().environmentObject(AppState.shared)
+        )
+        let contentItem = NSSplitViewItem(contentListWithViewController: contentVC)
+        contentItem.minimumThickness = 400
+
+        // Detail (right, collapsible)
+        let detailVC = NSHostingController(
+            rootView: RightPane().environmentObject(AppState.shared)
+        )
+        let detailItem = NSSplitViewItem(viewController: detailVC)
+        detailItem.minimumThickness = 280
+        detailItem.maximumThickness = 500
+        detailItem.canCollapse = true
+
+        addSplitViewItem(sidebarItem)
+        addSplitViewItem(contentItem)
+        addSplitViewItem(detailItem)
+    }
+
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        // Set initial divider positions
+        splitView.setPosition(220, ofDividerAt: 0)
+        splitView.setPosition(splitView.bounds.width - 350, ofDividerAt: 1)
+    }
+}

@@ -4,6 +4,8 @@ import SwiftUI
 /// Global application state
 @MainActor
 final class AppState: ObservableObject {
+    static let shared = AppState()
+
     @Published var workspaces: [Workspace] = []
     @Published var selectedWorkspaceId: UUID?
     @Published var navigationHistory = WorkspaceNavigationHistory()
