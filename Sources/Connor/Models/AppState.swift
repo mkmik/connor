@@ -40,9 +40,19 @@ final class AppState: ObservableObject {
     init() {
         loadPreferences()
         loadWorkspaces()
+        restoreLastSelectedWorkspace()
         // Start refreshing git diff stats
         refreshAllDiffStats()
         startDiffStatsRefreshTimer()
+    }
+
+    private func restoreLastSelectedWorkspace() {
+        guard let lastId = preferences.lastSelectedWorkspaceId,
+              workspaces.contains(where: { $0.id == lastId }) else {
+            return
+        }
+        selectedWorkspaceId = lastId
+        navigationHistory.push(lastId)
     }
 
     private func startDiffStatsRefreshTimer() {
@@ -59,6 +69,10 @@ final class AppState: ObservableObject {
         guard let id = id, id != selectedWorkspaceId else { return }
         selectedWorkspaceId = id
         navigationHistory.push(id)
+
+        // Persist the selection so it's restored on next launch
+        preferences.lastSelectedWorkspaceId = id
+        savePreferences()
 
         // Update last accessed time
         if let index = workspaces.firstIndex(where: { $0.id == id }) {
@@ -102,7 +116,10 @@ final class AppState: ObservableObject {
 
         // Select another workspace if the deleted one was selected
         if selectedWorkspaceId == workspace.id {
-            selectedWorkspaceId = sortedWorkspaces.first?.id
+            let newSelection = sortedWorkspaces.first?.id
+            selectedWorkspaceId = newSelection
+            preferences.lastSelectedWorkspaceId = newSelection
+            savePreferences()
         }
 
         // Reindex sort orders
