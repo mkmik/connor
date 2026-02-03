@@ -41,7 +41,6 @@ class MainWindowController: NSWindowController, NSToolbarDelegate {
         [
             .toggleSidebar,
             .sidebarTrackingSeparator,
-            .flexibleSpace,
             .branchDisplay,
             .flexibleSpace,
             .contentTrackingSeparator,

@@ -27,7 +27,6 @@ struct CustomTitleBar: View {
 
             // Middle section: Branch name
             HStack {
-                Spacer()
                 if let workspace = appState.selectedWorkspace,
                    let branch = workspace.currentBranch {
                     HStack(spacing: 6) {
@@ -44,6 +43,7 @@ struct CustomTitleBar: View {
                 }
                 Spacer()
             }
+            .padding(.leading, 12)
 
             Divider()
                 .frame(height: 24)
