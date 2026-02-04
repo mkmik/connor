@@ -40,6 +40,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        // Ensure window frame is saved before termination
+        mainWindowController?.window?.saveFrame(usingName: "MainWindow")
+    }
+
     // MARK: - Menu Commands
 
     private func setupMenuCommands() {
