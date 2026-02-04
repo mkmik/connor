@@ -3,13 +3,17 @@ import SwiftUI
 struct CIStatusView: View {
     @EnvironmentObject var appState: AppState
 
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    @State private var mergeRequest: GitLabMergeRequest?
-    @State private var refreshTask: Task<Void, Never>?
-
     var workspace: Workspace? {
         appState.selectedWorkspace
+    }
+
+    var sessionState: WorkspaceSessionState? {
+        guard let id = appState.selectedWorkspaceId else { return nil }
+        return appState.sessionState(for: id)
+    }
+
+    var checksState: ChecksState? {
+        sessionState?.checksState
     }
 
     var hasGitLabConfig: Bool {
@@ -31,28 +35,38 @@ struct CIStatusView: View {
                     title: "No Workspace",
                     subtitle: "Select a workspace to view CI status"
                 )
-            } else if isLoading && mergeRequest == nil {
+            } else if let state = checksState {
+                checksContent(state)
+            } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = errorMessage {
-                errorView(error)
-            } else if let mr = mergeRequest {
-                mrStatusView(mr)
-            } else {
-                noMRView
             }
         }
         .task(id: workspace?.id) {
-            await loadMRStatus()
+            loadIfNeeded()
         }
-        .onDisappear {
-            cancelAutoRefresh()
+    }
+
+    @ViewBuilder
+    private func checksContent(_ state: ChecksState) -> some View {
+        if state.isFetching && state.mergeRequest == nil {
+            // Initial load - show spinner
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let error = state.errorMessage, state.mergeRequest == nil {
+            // Error with no cached data
+            errorView(error)
+        } else if let mr = state.mergeRequest {
+            // Show MR (may be refreshing in background)
+            mrStatusView(mr, isRefreshing: state.isFetching)
+        } else {
+            noMRView
         }
     }
 
     // MARK: - MR Status View
 
-    private func mrStatusView(_ mr: GitLabMergeRequest) -> some View {
+    private func mrStatusView(_ mr: GitLabMergeRequest, isRefreshing: Bool) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 // MR Header
@@ -83,14 +97,18 @@ struct CIStatusView: View {
                     Spacer()
 
                     Button {
-                        Task {
-                            await loadMRStatus()
-                        }
+                        triggerRefresh()
                     } label: {
-                        Image(systemName: "arrow.clockwise")
+                        if isRefreshing {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                                .frame(width: 16, height: 16)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
                     }
                     .buttonStyle(.borderless)
-                    .disabled(isLoading)
+                    .disabled(isRefreshing)
                     .help("Refresh CI status")
                 }
                 .padding(.horizontal, 12)
@@ -121,9 +139,7 @@ struct CIStatusView: View {
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
             Button("Retry") {
-                Task {
-                    await loadMRStatus()
-                }
+                triggerRefresh()
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -167,48 +183,20 @@ struct CIStatusView: View {
 
     // MARK: - Data Loading
 
-    private func loadMRStatus() async {
-        guard let workspace = workspace else { return }
+    private func loadIfNeeded() {
+        guard let workspace = workspace,
+              let sessionState = sessionState else { return }
 
-        isLoading = true
-        errorMessage = nil
-
-        let service = GitLabService { appState.preferences }
-
-        do {
-            let mr = try await service.checkMRExists(for: workspace)
-            await MainActor.run {
-                self.mergeRequest = mr
-                self.isLoading = false
-                self.scheduleAutoRefresh(mr: mr)
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-                self.isLoading = false
-            }
+        // Always fetch on workspace switch if data is stale
+        if sessionState.checksState.isStale {
+            appState.refreshChecks(for: workspace, sessionState: sessionState)
         }
     }
 
-    private func scheduleAutoRefresh(mr: GitLabMergeRequest?) {
-        cancelAutoRefresh()
-
-        // Only auto-refresh if pipeline is in progress
-        guard let pipeline = mr?.headPipeline,
-              pipeline.status == "running" || pipeline.status == "pending" else {
-            return
-        }
-
-        refreshTask = Task {
-            try? await Task.sleep(for: .seconds(30))
-            guard !Task.isCancelled else { return }
-            await loadMRStatus()
-        }
-    }
-
-    private func cancelAutoRefresh() {
-        refreshTask?.cancel()
-        refreshTask = nil
+    private func triggerRefresh() {
+        guard let workspace = workspace,
+              let sessionState = sessionState else { return }
+        appState.refreshChecks(for: workspace, sessionState: sessionState)
     }
 
     private func openPreferences() {
