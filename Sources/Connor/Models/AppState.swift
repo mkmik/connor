@@ -44,6 +44,8 @@ final class AppState: ObservableObject {
         // Start refreshing git diff stats
         refreshAllDiffStats()
         startDiffStatsRefreshTimer()
+        // Start refreshing CI checks
+        startChecksRefreshTimer()
     }
 
     private func restoreLastSelectedWorkspace() {
@@ -63,6 +65,29 @@ final class AppState: ObservableObject {
                 self?.refreshAllDiffStats()
             }
         }
+    }
+
+    private func startChecksRefreshTimer() {
+        // Refresh checks every 30 seconds (only if pipeline is running)
+        Task { @MainActor [weak self] in
+            while true {
+                try? await Task.sleep(for: .seconds(30))
+                self?.refreshActiveWorkspaceChecks()
+            }
+        }
+    }
+
+    /// Refresh checks for the currently selected workspace (if pipeline is running)
+    private func refreshActiveWorkspaceChecks() {
+        guard let workspaceId = selectedWorkspaceId,
+              let workspace = selectedWorkspace else { return }
+
+        let sessionState = sessionState(for: workspaceId)
+
+        // Only auto-refresh if pipeline is running/pending
+        guard sessionState.checksState.hasPipelineRunning else { return }
+
+        refreshChecks(for: workspace, sessionState: sessionState)
     }
 
     func selectWorkspace(_ id: UUID?) {
@@ -183,6 +208,39 @@ final class AppState: ObservableObject {
         workspaceDiffStats[workspaceId]
     }
 
+    // MARK: - CI/CD Checks
+
+    /// Refresh checks for a specific workspace
+    func refreshChecks(for workspace: Workspace, sessionState: WorkspaceSessionState) {
+        guard preferences.gitlabURL != nil,
+              let token = preferences.gitlabToken,
+              !token.isEmpty else { return }
+
+        // Avoid duplicate fetches
+        guard !sessionState.checksState.isFetching else { return }
+
+        sessionState.checksState.isFetching = true
+
+        Task {
+            let service = GitLabService { self.preferences }
+            do {
+                let mr = try await service.checkMRExists(for: workspace)
+                await MainActor.run {
+                    sessionState.checksState.mergeRequest = mr
+                    sessionState.checksState.errorMessage = nil
+                    sessionState.checksState.lastFetchedAt = Date()
+                    sessionState.checksState.isFetching = false
+                }
+            } catch {
+                await MainActor.run {
+                    sessionState.checksState.errorMessage = error.localizedDescription
+                    sessionState.checksState.lastFetchedAt = Date()
+                    sessionState.checksState.isFetching = false
+                }
+            }
+        }
+    }
+
     // MARK: - Persistence
 
     func loadPreferences() {
@@ -208,6 +266,24 @@ enum FocusedTerminalArea: String {
     case additionalTerminal
 }
 
+/// Cached CI/CD status for the Checks pane
+struct ChecksState {
+    var mergeRequest: GitLabMergeRequest?
+    var errorMessage: String?
+    var lastFetchedAt: Date?
+    var isFetching: Bool = false
+
+    var isStale: Bool {
+        guard let lastFetched = lastFetchedAt else { return true }
+        return Date().timeIntervalSince(lastFetched) > 30
+    }
+
+    var hasPipelineRunning: Bool {
+        guard let pipeline = mergeRequest?.headPipeline else { return false }
+        return pipeline.status == "running" || pipeline.status == "pending"
+    }
+}
+
 /// State for a single workspace's session
 @MainActor
 final class WorkspaceSessionState: ObservableObject, Identifiable {
@@ -222,6 +298,9 @@ final class WorkspaceSessionState: ObservableObject, Identifiable {
     // Middle pane file viewer tabs
     @Published var openFileTabs: [URL] = []
     @Published var selectedMiddlePaneTab: MiddlePaneTab = .claude
+
+    // CI/CD checks state (cached per workspace)
+    @Published var checksState: ChecksState = ChecksState()
 
     init(workspaceId: UUID) {
         self.id = workspaceId
