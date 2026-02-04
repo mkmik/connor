@@ -48,8 +48,8 @@ class MainWindowController: NSWindowController, NSToolbarDelegate {
             .sidebarTrackingSeparator,
             .branchDisplay,
             .flexibleSpace,
-            .contentTrackingSeparator,
             .openInMenu,
+            .contentTrackingSeparator,
             .createMR
         ]
     }
