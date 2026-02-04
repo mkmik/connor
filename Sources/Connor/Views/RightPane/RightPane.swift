@@ -18,6 +18,9 @@ struct RightPane: View {
         VSplitView {
             // Top section - Files/Changes/Checks tabs
             VStack(spacing: 0) {
+                Divider()
+                .background(Color(nsColor: .windowBackgroundColor))   
+
                 // Tab bar
                 HStack(spacing: 0) {
                     ForEach(RightPaneTab.allCases) { tab in
