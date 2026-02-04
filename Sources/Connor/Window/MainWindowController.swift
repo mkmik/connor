@@ -16,11 +16,16 @@ class MainWindowController: NSWindowController, NSToolbarDelegate {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.minSize = NSSize(width: 1200, height: 700)
-        window.center()
 
         self.init(window: window)
         setupSplitViewController()
         setupToolbar()
+
+        // Restore saved window frame AFTER content is set up (to avoid content resizing the window)
+        if !window.setFrameUsingName("MainWindow") {
+            window.center()
+        }
+        window.setFrameAutosaveName("MainWindow")
     }
 
     private func setupSplitViewController() {
