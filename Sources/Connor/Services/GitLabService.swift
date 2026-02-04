@@ -196,7 +196,54 @@ final class GitLabService {
         let decoder = JSONDecoder()
         let mergeRequests = try decoder.decode([GitLabMergeRequest].self, from: data)
 
-        return mergeRequests.first
+        // The list endpoint may not include full pipeline data, so fetch the specific MR
+        guard let mr = mergeRequests.first else {
+            return nil
+        }
+
+        return try await fetchSingleMR(projectPath: projectPath, iid: mr.iid)
+    }
+
+    /// Fetches a single MR by IID to get full details including pipeline
+    private func fetchSingleMR(projectPath: String, iid: Int) async throws -> GitLabMergeRequest? {
+        let prefs = preferences()
+
+        guard let baseURL = prefs.gitlabURL, let token = prefs.gitlabToken, !token.isEmpty else {
+            throw GitLabError.notConfigured
+        }
+
+        var allowedChars = CharacterSet.alphanumerics
+        allowedChars.insert(charactersIn: "-._~")
+        let encodedProject = projectPath.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? projectPath
+
+        let apiURLString = "\(baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/")))/api/v4/projects/\(encodedProject)/merge_requests/\(iid)"
+        guard let url = URL(string: apiURLString) else {
+            throw GitLabError.networkError("Failed to construct single MR API URL")
+        }
+
+        print("[GitLabService] Fetching single MR: \(url)")
+
+        var request = URLRequest(url: url)
+        request.setValue(token, forHTTPHeaderField: "PRIVATE-TOKEN")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GitLabError.networkError("Invalid response")
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw GitLabError.apiError(httpResponse.statusCode, message)
+        }
+
+        let decoder = JSONDecoder()
+        let mr = try decoder.decode(GitLabMergeRequest.self, from: data)
+
+        print("[GitLabService] Fetched MR \(mr.iid), pipeline: \(mr.headPipeline?.status ?? "none")")
+
+        return mr
     }
 
     /// Checks if an MR exists for the current branch of a workspace
