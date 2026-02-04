@@ -55,6 +55,7 @@ final class AppState: ObservableObject {
         }
         selectedWorkspaceId = lastId
         navigationHistory.push(lastId)
+        preloadChecks(for: lastId)
     }
 
     private func startDiffStatsRefreshTimer() {
@@ -104,17 +105,30 @@ final class AppState: ObservableObject {
             workspaces[index].lastAccessedAt = Date()
             saveWorkspaces()
         }
+
+        // Preload checks data so it's ready when user switches to Checks tab
+        preloadChecks(for: id)
+    }
+
+    private func preloadChecks(for workspaceId: UUID) {
+        guard let workspace = workspaces.first(where: { $0.id == workspaceId }) else { return }
+        let state = sessionState(for: workspaceId)
+        if state.checksState.isStale {
+            refreshChecks(for: workspace, sessionState: state)
+        }
     }
 
     func navigateBack() {
         if let id = navigationHistory.goBack() {
             selectedWorkspaceId = id
+            preloadChecks(for: id)
         }
     }
 
     func navigateForward() {
         if let id = navigationHistory.goForward() {
             selectedWorkspaceId = id
+            preloadChecks(for: id)
         }
     }
 
