@@ -18,6 +18,9 @@ struct RightPane: View {
         VSplitView {
             // Top section - Files/Changes/Checks tabs
             VStack(spacing: 0) {
+                Divider()
+                .background(Color(nsColor: .windowBackgroundColor))   
+
                 // Tab bar
                 HStack(spacing: 0) {
                     ForEach(RightPaneTab.allCases) { tab in
@@ -32,7 +35,7 @@ struct RightPane: View {
                 }
                 .padding(.horizontal, 8)
                 .frame(height: 36)
-                .background(Color(nsColor: .windowBackgroundColor))
+                .background(Color(nsColor: .textBackgroundColor))
 
                 Divider()
 
@@ -48,6 +51,7 @@ struct RightPane: View {
                     }
                 }
             }
+            .background(Color(nsColor: .textBackgroundColor))
             .frame(minHeight: 200)
 
             // Bottom section - Additional terminals

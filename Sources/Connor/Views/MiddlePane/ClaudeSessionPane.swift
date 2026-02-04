@@ -10,6 +10,9 @@ struct ClaudeSessionPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            Divider()
+            .background(Color(nsColor: .windowBackgroundColor))   
+            
             // Tab bar
             if let session = sessionState {
                 MiddlePaneTabBar(session: session)
