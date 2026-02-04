@@ -4,10 +4,58 @@ import SwiftUI
 struct CreateMRButton: View {
     @EnvironmentObject var appState: AppState
 
-    @State private var mrStatus: MRStatus = .loading
-    @State private var existingMR: GitLabMergeRequest?
+    // MARK: - Computed Properties (derived from checksState)
 
-    private let gitLabService: GitLabService
+    private var sessionState: WorkspaceSessionState? {
+        guard let id = appState.selectedWorkspaceId else { return nil }
+        return appState.sessionState(for: id)
+    }
+
+    private var checksState: ChecksState? {
+        sessionState?.checksState
+    }
+
+    private var hasGitLabConfig: Bool {
+        guard appState.preferences.gitlabURL != nil,
+              let token = appState.preferences.gitlabToken,
+              !token.isEmpty else {
+            return false
+        }
+        return true
+    }
+
+    /// Derives MRStatus from checksState
+    private var mrStatus: MRStatus {
+        guard hasGitLabConfig else {
+            return .notConfigured
+        }
+
+        guard appState.selectedWorkspace != nil else {
+            return .notConfigured
+        }
+
+        guard let state = checksState else {
+            return .loading
+        }
+
+        // Currently fetching with no cached data
+        if state.isFetching && state.mergeRequest == nil && state.errorMessage == nil {
+            return .loading
+        }
+
+        // Has an MR
+        if let mr = state.mergeRequest {
+            return .hasMR(mr)
+        }
+
+        // Error state (only if we don't have cached MR data)
+        if let error = state.errorMessage {
+            return .error(error)
+        }
+
+        // No MR exists
+        return .noMR
+    }
 
     enum MRStatus: CustomStringConvertible {
         case loading
@@ -27,14 +75,8 @@ struct CreateMRButton: View {
         }
     }
 
-    init() {
-        // Capture preferences access in a way that works with the service
-        self.gitLabService = GitLabService { Preferences.default }
-    }
-
     var body: some View {
         Group {
-            let _ = print("[CreateMRButton] Rendering body, status: \(mrStatus), workspace: \(appState.selectedWorkspace?.id.uuidString ?? "nil")")
             switch mrStatus {
             case .loading:
                 ProgressView()
@@ -47,15 +89,6 @@ struct CreateMRButton: View {
             case .error, .notConfigured:
                 // Don't show if there's an error or not configured
                 EmptyView()
-            }
-        }
-        .task(id: appState.selectedWorkspace?.id) {
-            print("[CreateMRButton] Task triggered for workspace: \(appState.selectedWorkspace?.id.uuidString ?? "nil")")
-            await checkMRStatus()
-        }
-        .onChange(of: appState.selectedWorkspace?.currentBranch) { _, _ in
-            Task {
-                await checkMRStatus()
             }
         }
     }
@@ -115,53 +148,6 @@ struct CreateMRButton: View {
         .help("Create a GitLab Merge Request for this branch")
     }
 
-    private func checkMRStatus() async {
-        // Reset to loading state
-        mrStatus = .loading
-
-        // Check if GitLab is configured
-        guard let gitlabURL = appState.preferences.gitlabURL else {
-            print("[CreateMRButton] GitLab URL not configured")
-            mrStatus = .notConfigured
-            return
-        }
-
-        guard let token = appState.preferences.gitlabToken, !token.isEmpty else {
-            print("[CreateMRButton] GitLab token not configured")
-            mrStatus = .notConfigured
-            return
-        }
-
-        guard let workspace = appState.selectedWorkspace else {
-            print("[CreateMRButton] No workspace selected")
-            mrStatus = .notConfigured
-            return
-        }
-
-        print("[CreateMRButton] Checking MR for branch '\(workspace.currentBranch ?? "unknown")' at \(gitlabURL)")
-
-        // Create a service with current preferences
-        let service = GitLabService { [appState] in
-            appState.preferences
-        }
-
-        do {
-            if let mr = try await service.checkMRExists(for: workspace) {
-                print("[CreateMRButton] Found existing MR: \(mr.webUrl)")
-                mrStatus = .hasMR(mr)
-                existingMR = mr
-            } else {
-                print("[CreateMRButton] No MR found, showing button")
-                mrStatus = .noMR
-                existingMR = nil
-            }
-        } catch {
-            print("[CreateMRButton] Error checking MR: \(error.localizedDescription)")
-            mrStatus = .error(error.localizedDescription)
-            existingMR = nil
-        }
-    }
-
     private func createMR() {
         guard let gitlabURL = appState.preferences.gitlabURL,
               let workspace = appState.selectedWorkspace,
@@ -171,6 +157,10 @@ struct CreateMRButton: View {
         }
 
         Task {
+            let gitLabService = GitLabService { [appState] in
+                appState.preferences
+            }
+
             guard let remoteURL = try? await gitLabService.getRemoteURL(at: rootPath),
                   let projectPath = gitLabService.extractProjectPath(from: remoteURL) else {
                 return
