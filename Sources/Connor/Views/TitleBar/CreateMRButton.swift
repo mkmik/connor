@@ -101,7 +101,7 @@ struct CreateMRButton: View {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "arrow.triangle.pull")
-                Text("View MR")
+                Text("MR !\(mr.iid) ↗")
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
