@@ -95,6 +95,17 @@ jobs:
           # Create PkgInfo
           echo -n "APPL????" > "${APP_BUNDLE}/Contents/PkgInfo"
 
+          # Compile Assets.xcassets (app icon)
+          ASSETS_DIR="Sources/Connor/Resources/Assets.xcassets"
+          if [ -d "$ASSETS_DIR" ]; then
+            xcrun actool "$ASSETS_DIR" \
+              --compile "${APP_BUNDLE}/Contents/Resources" \
+              --platform macosx \
+              --minimum-deployment-target 14.0 \
+              --app-icon AppIcon \
+              --output-partial-info-plist /tmp/connor-assets-info.plist
+          fi
+
           echo "App bundle created"
 
       - name: Code sign app bundle
