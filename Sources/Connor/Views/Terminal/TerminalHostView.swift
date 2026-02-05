@@ -29,26 +29,18 @@ struct TerminalHostView: NSViewRepresentable {
         // Set up delegate
         terminalView.processDelegate = context.coordinator
 
-        // Build environment as array of KEY=VALUE strings
-        var env = ProcessInfo.processInfo.environment
-        env["TERM"] = "xterm-256color"
-        env["LANG"] = "en_US.UTF-8"
-        for (key, value) in environment {
-            env[key] = value
-        }
-        let envStrings = env.map { "\($0.key)=\($0.value)" }
-
-        // Start the process via exec (clean startup without visible cd command)
+        // Start the process via login shell + exec (clean startup without visible cd command)
+        let env = ProcessInfo.processInfo.environment
         let shell = command.isEmpty ? (env["SHELL"] ?? "/bin/zsh") : command
 
         // Shell-escape arguments using single quotes
         let quotedArgs = arguments.map { "'" + $0.replacingOccurrences(of: "'", with: "'\\''") + "'" }
         let argsStr = quotedArgs.isEmpty ? "" : " " + quotedArgs.joined(separator: " ")
 
-        terminalView.startProcess(
-            executable: "/bin/zsh",
-            args: ["-c", "cd \"\(workingDirectory.path)\" && exec \(shell)\(argsStr)"],
-            environment: envStrings,
+        terminalView.startLoginShell(
+            workingDirectory: workingDirectory,
+            command: "exec \(shell)\(argsStr)",
+            extraEnvironment: environment,
             execName: shell
         )
 
@@ -111,19 +103,10 @@ struct ClaudeTerminalView: NSViewRepresentable {
         terminalView.nativeBackgroundColor = .white
         terminalView.nativeForegroundColor = .black
 
-        // Build environment as array of KEY=VALUE strings
-        var env = ProcessInfo.processInfo.environment
-        env["TERM"] = "xterm-256color"
-        env["LANG"] = "en_US.UTF-8"
-        let envStrings = env.map { "\($0.key)=\($0.value)" }
-
-        // Start claude via shell to ensure correct working directory
-        // SwiftTerm doesn't support setting working directory on process start,
-        // so we use a shell to cd first, then exec claude
-        terminalView.startProcess(
-            executable: "/bin/zsh",
-            args: ["-c", "cd \"\(workingDirectory.path)\" && exec claude"],
-            environment: envStrings,
+        // Start claude via login shell to ensure correct working directory and PATH
+        terminalView.startLoginShell(
+            workingDirectory: workingDirectory,
+            command: "exec claude",
             execName: "claude"
         )
 
