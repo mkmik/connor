@@ -140,7 +140,7 @@ final class TerminalManager: ObservableObject {
         let sessionId = workspaceId.uuidString.lowercased()
         return """
             clear
-            if ls ~/.claude/projects/*/\(sessionId).jsonl 1>/dev/null 2>&1; then
+            if find ~/.claude/projects -maxdepth 2 -name '\(sessionId).jsonl' -print -quit 2>/dev/null | grep -q .; then
                 exec claude --resume \(sessionId)
             else
                 exec claude --session-id \(sessionId)
