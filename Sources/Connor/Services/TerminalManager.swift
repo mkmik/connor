@@ -61,7 +61,7 @@ final class TerminalManager: ObservableObject {
     /// Gets or creates a Claude terminal for the specified workspace.
     func claudeTerminal(for workspaceId: UUID, workingDirectory: URL) -> LocalProcessTerminalView {
         let key = claudeKey(for: workspaceId)
-        return terminal(for: key, workingDirectory: workingDirectory, isClaude: true)
+        return terminal(for: key, workspaceId: workspaceId, workingDirectory: workingDirectory, isClaude: true)
     }
 
     /// Gets or creates an additional terminal for the specified workspace and terminal ID.
@@ -75,6 +75,7 @@ final class TerminalManager: ObservableObject {
         let key = terminalKey(for: workspaceId, terminalId: terminalId)
         return terminal(
             for: key,
+            workspaceId: workspaceId,
             workingDirectory: workingDirectory,
             isClaude: false,
             command: command,
@@ -113,10 +114,11 @@ final class TerminalManager: ObservableObject {
         env["LANG"] = "en_US.UTF-8"
         let envStrings = env.map { "\($0.key)=\($0.value)" }
 
-        // Restart claude process
+        // Restart claude process with session handling
+        let claudeCmd = claudeCommand(for: workspaceId)
         cached.terminalView.startProcess(
             executable: "/bin/zsh",
-            args: ["-c", "cd \"\(workingDirectory.path)\" && exec claude"],
+            args: ["-c", "cd \"\(workingDirectory.path)\" && \(claudeCmd)"],
             environment: envStrings,
             execName: "claude"
         )
@@ -132,8 +134,23 @@ final class TerminalManager: ObservableObject {
         "\(workspaceId.uuidString):\(terminalId.uuidString)"
     }
 
+    /// Generates the shell command to start claude with appropriate session handling.
+    /// Uses --resume if a session file exists, otherwise --session-id.
+    private func claudeCommand(for workspaceId: UUID) -> String {
+        let sessionId = workspaceId.uuidString.lowercased()
+        return """
+            clear
+            if ls ~/.claude/projects/*/\(sessionId).jsonl 1>/dev/null 2>&1; then
+                exec claude --resume \(sessionId)
+            else
+                exec claude --session-id \(sessionId)
+            fi
+            """
+    }
+
     private func terminal(
         for key: String,
+        workspaceId: UUID,
         workingDirectory: URL,
         isClaude: Bool,
         command: String? = nil,
@@ -150,6 +167,7 @@ final class TerminalManager: ObservableObject {
 
         // Create new terminal
         let terminalView = createTerminal(
+            workspaceId: workspaceId,
             workingDirectory: workingDirectory,
             isClaude: isClaude,
             command: command,
@@ -166,6 +184,7 @@ final class TerminalManager: ObservableObject {
     }
 
     private func createTerminal(
+        workspaceId: UUID,
         workingDirectory: URL,
         isClaude: Bool,
         command: String?,
@@ -192,10 +211,11 @@ final class TerminalManager: ObservableObject {
         let envStrings = env.map { "\($0.key)=\($0.value)" }
 
         if isClaude {
-            // Start claude via shell
+            // Start claude via shell with session handling
+            let claudeCmd = claudeCommand(for: workspaceId)
             terminalView.startProcess(
                 executable: "/bin/zsh",
-                args: ["-c", "cd \"\(workingDirectory.path)\" && exec claude"],
+                args: ["-c", "cd \"\(workingDirectory.path)\" && \(claudeCmd)"],
                 environment: envStrings,
                 execName: "claude"
             )
