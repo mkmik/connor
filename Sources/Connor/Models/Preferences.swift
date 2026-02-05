@@ -59,6 +59,10 @@ struct Preferences: Codable, Equatable {
     var customThemes: [Theme]
     var selectedThemeId: UUID?
 
+    // Pane visibility state
+    var isLeftPaneVisible: Bool
+    var isRightPaneVisible: Bool
+
     static var `default`: Preferences {
         Preferences(
             connorRootDirectory: FileManager.default.homeDirectoryForCurrentUser
@@ -75,7 +79,9 @@ struct Preferences: Codable, Equatable {
             branchNamePrefix: "connor",
             lastSelectedWorkspaceId: nil,
             customThemes: [],
-            selectedThemeId: Theme.light.id
+            selectedThemeId: Theme.light.id,
+            isLeftPaneVisible: true,
+            isRightPaneVisible: true
         )
     }
 
@@ -94,7 +100,9 @@ struct Preferences: Codable, Equatable {
         branchNamePrefix: String,
         lastSelectedWorkspaceId: UUID?,
         customThemes: [Theme],
-        selectedThemeId: UUID?
+        selectedThemeId: UUID?,
+        isLeftPaneVisible: Bool,
+        isRightPaneVisible: Bool
     ) {
         self.connorRootDirectory = connorRootDirectory
         self.recentRepositories = recentRepositories
@@ -110,6 +118,8 @@ struct Preferences: Codable, Equatable {
         self.lastSelectedWorkspaceId = lastSelectedWorkspaceId
         self.customThemes = customThemes
         self.selectedThemeId = selectedThemeId
+        self.isLeftPaneVisible = isLeftPaneVisible
+        self.isRightPaneVisible = isRightPaneVisible
     }
 
     // Custom decoder to handle migration from older preferences without theme fields
@@ -132,6 +142,10 @@ struct Preferences: Codable, Equatable {
         // New theme properties - use defaults if missing (migration from older versions)
         customThemes = try container.decodeIfPresent([Theme].self, forKey: .customThemes) ?? []
         selectedThemeId = try container.decodeIfPresent(UUID.self, forKey: .selectedThemeId) ?? Theme.light.id
+
+        // Pane visibility - default to visible if missing
+        isLeftPaneVisible = try container.decodeIfPresent(Bool.self, forKey: .isLeftPaneVisible) ?? true
+        isRightPaneVisible = try container.decodeIfPresent(Bool.self, forKey: .isRightPaneVisible) ?? true
     }
 
     mutating func addRecentRepository(_ url: URL) {
