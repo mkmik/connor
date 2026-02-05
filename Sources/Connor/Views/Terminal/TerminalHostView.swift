@@ -20,7 +20,10 @@ struct TerminalHostView: NSViewRepresentable {
         self.environment = environment
     }
 
-    func makeNSView(context: Context) -> LocalProcessTerminalView {
+    func makeNSView(context: Context) -> NSView {
+        let containerView = TerminalContainerView()
+        containerView.autoresizesSubviews = true
+
         let terminalView = LocalProcessTerminalView(frame: .zero)
 
         // Configure terminal appearance
@@ -44,10 +47,21 @@ struct TerminalHostView: NSViewRepresentable {
             execName: shell
         )
 
-        return terminalView
+        containerView.hostedTerminal = terminalView
+        terminalView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(terminalView)
+
+        NSLayoutConstraint.activate([
+            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+        ])
+
+        return containerView
     }
 
-    func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
+    func updateNSView(_ nsView: NSView, context: Context) {
         // Handle updates if needed (e.g., working directory change)
     }
 
@@ -91,7 +105,10 @@ struct TerminalHostView: NSViewRepresentable {
 struct ClaudeTerminalView: NSViewRepresentable {
     let workingDirectory: URL
 
-    func makeNSView(context: Context) -> LocalProcessTerminalView {
+    func makeNSView(context: Context) -> NSView {
+        let containerView = TerminalContainerView()
+        containerView.autoresizesSubviews = true
+
         let terminalView = LocalProcessTerminalView(frame: .zero)
 
         // Configure appearance
@@ -110,10 +127,21 @@ struct ClaudeTerminalView: NSViewRepresentable {
             execName: "claude"
         )
 
-        return terminalView
+        containerView.hostedTerminal = terminalView
+        terminalView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(terminalView)
+
+        NSLayoutConstraint.activate([
+            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+        ])
+
+        return containerView
     }
 
-    func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {}
+    func updateNSView(_ nsView: NSView, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
