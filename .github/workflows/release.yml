@@ -186,3 +186,48 @@ jobs:
             --notes-file release_notes.md
 
           echo "Release ${VERSION} created"
+
+      - name: Update Homebrew cask
+        if: steps.check_merge.outputs.is_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.new_version }}"
+          VERSION_NUMBER="${VERSION#v}"
+          DMG_PATH="${{ steps.dmg.outputs.dmg_path }}"
+          SHA256=$(shasum -a 256 "${DMG_PATH}" | cut -d ' ' -f 1)
+
+          echo "Updating Homebrew cask to version ${VERSION_NUMBER} with SHA256 ${SHA256}"
+
+          git clone https://x-access-token:${GH_TOKEN}@github.com/mkmik/homebrew-connor.git
+          cd homebrew-connor
+
+          cat > Casks/connor.rb << EOF
+          cask "connor" do
+            version "${VERSION_NUMBER}"
+            sha256 "${SHA256}"
+
+            url "https://github.com/mkmik/connor/releases/download/v#{version}/Connor-v#{version}.dmg"
+            name "Connor"
+            desc "Developer tools macOS application"
+            homepage "https://github.com/mkmik/connor"
+
+            depends_on macos: ">= :sonoma"
+
+            app "Connor.app"
+
+            zap trash: [
+              "~/Library/Preferences/com.connor.app.plist",
+              "~/Library/Application Support/Connor",
+              "~/Library/Caches/Connor",
+            ]
+          end
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/connor.rb
+          git commit -m "Update connor to ${VERSION_NUMBER}"
+          git push
+
+          echo "Homebrew cask updated"
