@@ -287,8 +287,9 @@ final class TerminalManager: ObservableObject {
 extension LocalProcessTerminalView {
     /// Starts a process via a login shell, ensuring the user's full PATH is available.
     ///
-    /// Launches `/bin/zsh -l -c "cd <dir> && <command>"` so that login profiles
-    /// (`/etc/zprofile`, `~/.zprofile`) are sourced before executing the command.
+    /// Launches `/bin/zsh -li -c "cd <dir> && <command>"` so that login profiles
+    /// (`/etc/zprofile`, `~/.zprofile`) and interactive configs (`~/.zshrc`)
+    /// are sourced before executing the command.
     /// This matches Terminal.app/iTerm behavior and avoids the minimal PATH that
     /// macOS GUI apps inherit.
     func startLoginShell(
@@ -297,9 +298,18 @@ extension LocalProcessTerminalView {
         extraEnvironment: [String: String] = [:],
         execName: String? = nil
     ) {
-        var env = ProcessInfo.processInfo.environment
-        env["TERM"] = "xterm-256color"
-        env["LANG"] = "en_US.UTF-8"
+        let parentEnv = ProcessInfo.processInfo.environment
+        var env: [String: String] = [
+            "TERM": "xterm-256color",
+            "LANG": "en_US.UTF-8",
+        ]
+        // Pass through only the essential system variables that macOS
+        // provides to GUI apps launched via open/Finder (launchd environment)
+        for key in ["HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "__CF_USER_TEXT_ENCODING", "SSH_AUTH_SOCK"] {
+            if let value = parentEnv[key] {
+                env[key] = value
+            }
+        }
         for (key, value) in extraEnvironment {
             env[key] = value
         }
@@ -307,7 +317,7 @@ extension LocalProcessTerminalView {
 
         startProcess(
             executable: "/bin/zsh",
-            args: ["-l", "-c", "cd \"\(workingDirectory.path)\" && \(command)"],
+            args: ["-li", "-c", "cd \"\(workingDirectory.path)\" && \(command)"],
             environment: envStrings,
             execName: execName ?? "/bin/zsh"
         )
