@@ -117,6 +117,9 @@ struct CreateMRButton: View {
         if mr.isMerged {
             // GitHub "merged" purple palette
             return Color(red: 137/255, green: 87/255, blue: 229/255)  // #8957e5
+        } else if mr.hasPipelineFailed {
+            // GitHub "failure" red
+            return Color(red: 207/255, green: 34/255, blue: 46/255)  // #cf222e
         } else if mr.hasPipelineSuccess {
             // Green for successful pipeline
             return Color.green
