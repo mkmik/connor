@@ -123,6 +123,9 @@ final class TerminalManager: ObservableObject {
         for key in keysToRemove {
             terminals.removeValue(forKey: key)
         }
+
+        // Kill the tmux session so Claude doesn't keep running in background
+        killTmuxSession(for: workspaceId)
     }
 
     /// Removes a specific terminal (called when additional terminal tab is closed).
@@ -167,18 +170,48 @@ final class TerminalManager: ObservableObject {
         "\(workspaceId.uuidString):\(terminalId.uuidString)"
     }
 
-    /// Generates the shell command to start claude with appropriate session handling.
-    /// Uses --resume if a session file exists, otherwise --session-id.
+    /// Returns the tmux session name for a workspace.
+    private func tmuxSessionName(for workspaceId: UUID) -> String {
+        "connor-\(workspaceId.uuidString.lowercased())"
+    }
+
+    /// Generates the shell command to start claude inside a tmux session.
+    ///
+    /// If a tmux session already exists for this workspace (Claude still running
+    /// from a previous app session), reattaches to it. Otherwise creates a new
+    /// tmux session running Claude with appropriate --resume / --session-id handling.
+    ///
+    /// This means:
+    /// - Closing the app doesn't kill Claude (it keeps running in tmux)
+    /// - Reopening the app reattaches to the still-running Claude process
+    /// - If Claude exited while the app was closed, --resume restores the conversation
     private func claudeCommand(for workspaceId: UUID) -> String {
         let sessionId = workspaceId.uuidString.lowercased()
+        let tmuxSession = tmuxSessionName(for: workspaceId)
         return """
-            clear
-            if find ~/.claude/projects -maxdepth 2 -name '\(sessionId).jsonl' -print -quit 2>/dev/null | grep -q .; then
-                exec claude --resume \(sessionId)
+            if tmux has-session -t '\(tmuxSession)' 2>/dev/null; then
+                exec tmux attach-session -t '\(tmuxSession)'
             else
-                exec claude --session-id \(sessionId)
+                if find ~/.claude/projects -maxdepth 2 -name '\(sessionId).jsonl' -print -quit 2>/dev/null | grep -q .; then
+                    exec tmux new-session -s '\(tmuxSession)' 'exec claude --resume \(sessionId)'
+                else
+                    exec tmux new-session -s '\(tmuxSession)' 'exec claude --session-id \(sessionId)'
+                fi
             fi
             """
+    }
+
+    /// Kills the tmux session for a workspace (fire-and-forget).
+    private func killTmuxSession(for workspaceId: UUID) {
+        let sessionName = tmuxSessionName(for: workspaceId)
+        Task.detached {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["tmux", "kill-session", "-t", sessionName]
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            try? process.run()
+        }
     }
 
     private func terminal(
