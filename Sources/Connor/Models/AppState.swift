@@ -263,6 +263,18 @@ final class AppState: ObservableObject {
         preferencesService.save(preferences)
     }
 
+    func notifyFontPreferencesChanged() {
+        var userInfo: [String: Any] = ["fontSize": preferences.monospaceFontSize]
+        if let fontName = preferences.monospaceFontName {
+            userInfo["fontName"] = fontName
+        }
+        NotificationCenter.default.post(
+            name: .fontPreferencesDidChange,
+            object: nil,
+            userInfo: userInfo
+        )
+    }
+
     func loadWorkspaces() {
         workspaces = workspaceStorage.load(rootDirectory: preferences.connorRootDirectory)
     }

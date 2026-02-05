@@ -21,6 +21,9 @@ final class TerminalManager: ObservableObject {
     /// Observer for theme changes
     private var themeObserver: NSObjectProtocol?
 
+    /// Observer for font preference changes
+    private var fontObserver: NSObjectProtocol?
+
     private init() {
         // Subscribe to theme changes
         themeObserver = NotificationCenter.default.addObserver(
@@ -34,10 +37,27 @@ final class TerminalManager: ObservableObject {
                 self.applyTheme(theme)
             }
         }
+
+        // Subscribe to font preference changes
+        fontObserver = NotificationCenter.default.addObserver(
+            forName: .fontPreferencesDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let fontSize = notification.userInfo?["fontSize"] as? CGFloat else { return }
+            let fontName = notification.userInfo?["fontName"] as? String
+            guard let self = self else { return }
+            Task { @MainActor [self] in
+                self.applyFont(size: fontSize, name: fontName)
+            }
+        }
     }
 
     deinit {
         if let observer = themeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = fontObserver {
             NotificationCenter.default.removeObserver(observer)
         }
     }
@@ -53,6 +73,19 @@ final class TerminalManager: ObservableObject {
                 : theme.rightTerminalBackground.nsColor
             cached.terminalView.nativeBackgroundColor = backgroundColor
             cached.terminalView.nativeForegroundColor = ThemeManager.contrastingColor(for: backgroundColor)
+        }
+    }
+
+    /// Updates all cached terminal fonts
+    func applyFont(size: CGFloat, name: String?) {
+        let font: NSFont
+        if let name = name, let customFont = NSFont(name: name, size: size) {
+            font = customFont
+        } else {
+            font = NSFont.monospacedSystemFont(ofSize: size, weight: .thin)
+        }
+        for (_, cached) in terminals {
+            cached.terminalView.font = font
         }
     }
 
@@ -193,7 +226,14 @@ final class TerminalManager: ObservableObject {
         let terminalView = LocalProcessTerminalView(frame: .zero)
 
         // Configure appearance
-        terminalView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let prefs = AppState.shared.preferences
+        let font: NSFont
+        if let fontName = prefs.monospaceFontName, let customFont = NSFont(name: fontName, size: prefs.monospaceFontSize) {
+            font = customFont
+        } else {
+            font = NSFont.monospacedSystemFont(ofSize: prefs.monospaceFontSize, weight: .light)
+        }
+        terminalView.font = font
         terminalView.optionAsMetaKey = true
 
         // Use theme colors

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct FileViewerView: View {
+    @EnvironmentObject var appState: AppState
     let fileURL: URL
     @State private var content: String = ""
     @State private var isLoading = true
@@ -21,7 +22,7 @@ struct FileViewerView: View {
                 GeometryReader { geometry in
                     ScrollView([.horizontal, .vertical]) {
                         Text(content)
-                            .font(.system(size: 13, design: .monospaced))
+                            .font(monospaceFont)
                             .textSelection(.enabled)
                             .padding()
                             .frame(
@@ -40,6 +41,14 @@ struct FileViewerView: View {
         .onChange(of: fileURL) {
             loadFile()
         }
+    }
+
+    private var monospaceFont: Font {
+        let size = appState.preferences.monospaceFontSize
+        if let fontName = appState.preferences.monospaceFontName {
+            return .custom(fontName, size: size)
+        }
+        return .system(size: size, design: .monospaced)
     }
 
     private func loadFile() {
@@ -69,5 +78,6 @@ struct FileViewerView: View {
 
 #Preview {
     FileViewerView(fileURL: URL(fileURLWithPath: "/etc/hosts"))
+        .environmentObject(AppState())
         .frame(width: 600, height: 400)
 }

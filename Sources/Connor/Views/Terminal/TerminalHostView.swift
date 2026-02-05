@@ -161,6 +161,10 @@ struct PersistentClaudeTerminalView: NSViewRepresentable {
         containerView.autoresizesSubviews = true
         containerView.onFocusGained = onFocusGained
 
+        // Set container background to match terminal
+        let theme = ThemeManager.shared.currentTheme
+        containerView.backgroundColor = theme.centralTerminalBackground.nsColor
+
         // Update the current workspace in the manager
         TerminalManager.shared.currentWorkspaceId = workspaceId
 
@@ -176,11 +180,12 @@ struct PersistentClaudeTerminalView: NSViewRepresentable {
         terminalView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(terminalView)
 
+        let padding: CGFloat = 8
         NSLayoutConstraint.activate([
-            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
+            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: padding),
+            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -padding),
+            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: padding),
+            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -padding)
         ])
 
         // Restore focus if needed
@@ -199,6 +204,10 @@ struct PersistentClaudeTerminalView: NSViewRepresentable {
         // Update focus callback
         containerView.onFocusGained = onFocusGained
 
+        // Update container background to match current theme
+        let theme = ThemeManager.shared.currentTheme
+        containerView.backgroundColor = theme.centralTerminalBackground.nsColor
+
         // Update the current workspace in the manager
         TerminalManager.shared.currentWorkspaceId = workspaceId
 
@@ -216,11 +225,12 @@ struct PersistentClaudeTerminalView: NSViewRepresentable {
             terminalView.translatesAutoresizingMaskIntoConstraints = false
             containerView.addSubview(terminalView)
 
+            let padding: CGFloat = 8
             NSLayoutConstraint.activate([
-                terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
-                terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-                terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
+                terminalView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: padding),
+                terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -padding),
+                terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: padding),
+                terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -padding)
             ])
 
             // Restore focus if needed after swap
@@ -278,6 +288,10 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
         containerView.autoresizesSubviews = true
         containerView.onFocusGained = onFocusGained
 
+        // Set container background to match terminal
+        let theme = ThemeManager.shared.currentTheme
+        containerView.backgroundColor = theme.rightTerminalBackground.nsColor
+
         let terminalView = TerminalManager.shared.additionalTerminal(
             for: workspaceId,
             terminalId: terminalId,
@@ -291,11 +305,12 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
         terminalView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(terminalView)
 
+        let padding: CGFloat = 8
         NSLayoutConstraint.activate([
-            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
+            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: padding),
+            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -padding),
+            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: padding),
+            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -padding)
         ])
 
         // Restore focus if needed
@@ -314,6 +329,10 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
         // Update focus callback
         containerView.onFocusGained = onFocusGained
 
+        // Update container background to match current theme
+        let theme = ThemeManager.shared.currentTheme
+        containerView.backgroundColor = theme.rightTerminalBackground.nsColor
+
         let terminalView = TerminalManager.shared.additionalTerminal(
             for: workspaceId,
             terminalId: terminalId,
@@ -329,11 +348,12 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
             terminalView.translatesAutoresizingMaskIntoConstraints = false
             containerView.addSubview(terminalView)
 
+            let padding: CGFloat = 8
             NSLayoutConstraint.activate([
-                terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
-                terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-                terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
+                terminalView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: padding),
+                terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -padding),
+                terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: padding),
+                terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -padding)
             ])
 
             // Restore focus if needed after swap
@@ -369,6 +389,22 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
 private class TerminalContainerView: NSView {
     weak var hostedTerminal: LocalProcessTerminalView?
     var onFocusGained: (() -> Void)?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+    }
+
+    var backgroundColor: NSColor? {
+        didSet {
+            layer?.backgroundColor = backgroundColor?.cgColor
+        }
+    }
 
     override func mouseDown(with event: NSEvent) {
         onFocusGained?()
