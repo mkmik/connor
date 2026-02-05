@@ -38,6 +38,9 @@ struct WorkspaceListPane: View {
             }
         }
         .background(themeManager.currentTheme.leftPaneBackground.color)
+        .sheet(isPresented: $appState.showNewWorkspaceSheet) {
+            NewWorkspaceSheet()
+        }
     }
 
     private var emptyState: some View {
