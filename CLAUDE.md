@@ -27,3 +27,40 @@ newField = try container.decodeIfPresent(Type.self, forKey: .newField) ?? defaul
 ```
 
 This prevents the JSON decoder from failing when loading preferences saved before the new field existed.
+
+### NSSplitView Animation State Protection
+
+When animating `NSSplitViewItem.isCollapsed` and trying to restore a saved size afterward, `splitViewDidResizeSubviews` fires multiple times during the animation. If you read/save state in that delegate, it can overwrite your saved value with intermediate (wrong) values before your completion handler runs.
+
+**Solution:** Use a flag to block state updates during animation:
+
+```swift
+private var isAnimatingToggle = false
+
+func togglePanel() {
+    let wasCollapsed = item.isCollapsed
+    isAnimatingToggle = true  // Block saves during animation
+
+    NSAnimationContext.runAnimationGroup { context in
+        context.duration = 0.2
+        item.animator().isCollapsed.toggle()
+    } completionHandler: { [weak self] in
+        // Restore saved size if expanding
+        if wasCollapsed, let height = self?.savedHeight {
+            DispatchQueue.main.async {
+                self?.splitView.setPosition(...)
+                self?.isAnimatingToggle = false  // Re-enable saves
+            }
+        } else {
+            self?.isAnimatingToggle = false
+        }
+    }
+}
+
+override func splitViewDidResizeSubviews(_ notification: Notification) {
+    guard !isAnimatingToggle else { return }  // Skip during animation
+    saveState()
+}
+```
+
+See `RestSplitViewController.toggleBottomPanel()` for the full implementation.

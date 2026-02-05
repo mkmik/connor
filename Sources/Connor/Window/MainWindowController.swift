@@ -74,11 +74,11 @@ class MainWindowController: NSWindowController, NSToolbarDelegate {
             )
 
         case .contentTrackingSeparator:
-            // Track second divider (content | detail)
+            // Track the center/right divider in the upper split view
             return NSTrackingSeparatorToolbarItem(
                 identifier: itemIdentifier,
-                splitView: splitViewController.splitView,
-                dividerIndex: 1
+                splitView: splitViewController.upperSplitView,
+                dividerIndex: 0
             )
 
         case .branchDisplay:
