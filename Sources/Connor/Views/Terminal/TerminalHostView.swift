@@ -24,7 +24,7 @@ struct TerminalHostView: NSViewRepresentable {
         let containerView = TerminalContainerView()
         containerView.autoresizesSubviews = true
 
-        let terminalView = LocalProcessTerminalView(frame: .zero)
+        let terminalView = LocalProcessTerminalView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
 
         // Configure terminal appearance
         configureAppearance(terminalView)
@@ -79,6 +79,7 @@ struct TerminalHostView: NSViewRepresentable {
         // Light theme: white background, black text
         terminalView.nativeBackgroundColor = .white
         terminalView.nativeForegroundColor = .black
+        terminalView.hideNativeScroller()
     }
 
     class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
@@ -109,7 +110,7 @@ struct ClaudeTerminalView: NSViewRepresentable {
         let containerView = TerminalContainerView()
         containerView.autoresizesSubviews = true
 
-        let terminalView = LocalProcessTerminalView(frame: .zero)
+        let terminalView = LocalProcessTerminalView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
 
         // Configure appearance
         terminalView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
@@ -119,6 +120,7 @@ struct ClaudeTerminalView: NSViewRepresentable {
         // Light theme: white background, black text
         terminalView.nativeBackgroundColor = .white
         terminalView.nativeForegroundColor = .black
+        terminalView.hideNativeScroller()
 
         // Start claude via login shell to ensure correct working directory and PATH
         terminalView.startLoginShell(
@@ -397,26 +399,93 @@ struct PersistentAdditionalTerminalView: NSViewRepresentable {
 }
 
 /// Container NSView that holds a terminal and tracks it for swapping.
+/// Provides a custom overlay scroll indicator that appears on scroll and fades out.
 private class TerminalContainerView: NSView {
-    weak var hostedTerminal: LocalProcessTerminalView?
+    weak var hostedTerminal: LocalProcessTerminalView? {
+        didSet { setupScrollObserver() }
+    }
     var onFocusGained: (() -> Void)?
+
+    private let scrollIndicator = NSView()
+    private var scrollObservation: NSKeyValueObservation?
+    private var fadeWorkItem: DispatchWorkItem?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        wantsLayer = true
-        clipsToBounds = true
+        commonInit()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
+        commonInit()
+    }
+
+    private func commonInit() {
         wantsLayer = true
         clipsToBounds = true
+
+        scrollIndicator.wantsLayer = true
+        scrollIndicator.layer?.backgroundColor = NSColor.secondaryLabelColor.cgColor
+        scrollIndicator.layer?.cornerRadius = 3
+        scrollIndicator.layer?.zPosition = 1000
+        scrollIndicator.alphaValue = 0
+        addSubview(scrollIndicator)
     }
 
     var backgroundColor: NSColor? {
         didSet {
             layer?.backgroundColor = backgroundColor?.cgColor
         }
+    }
+
+    private func setupScrollObserver() {
+        scrollObservation?.invalidate()
+        fadeWorkItem?.cancel()
+        scrollIndicator.alphaValue = 0
+
+        guard let terminal = hostedTerminal,
+              let scroller = terminal.subviews.first(where: { $0 is NSScroller }) as? NSScroller else { return }
+
+        scroller.isHidden = true
+
+        scrollObservation = scroller.observe(\.doubleValue, options: [.new]) { [weak self] scroller, _ in
+            DispatchQueue.main.async { self?.flashScrollIndicator(scroller: scroller) }
+        }
+    }
+
+    private func flashScrollIndicator(scroller: NSScroller) {
+        guard let terminal = hostedTerminal,
+              scroller.isEnabled, scroller.knobProportion < 1.0 else {
+            scrollIndicator.alphaValue = 0
+            return
+        }
+
+        let trackHeight = terminal.frame.height
+        let knobHeight = max(trackHeight * CGFloat(scroller.knobProportion), 30)
+        let scrollableRange = trackHeight - knobHeight
+        let knobY = scrollableRange > 0 ? CGFloat(scroller.doubleValue) * scrollableRange : 0
+
+        scrollIndicator.frame = NSRect(
+            x: terminal.frame.maxX - 8,
+            y: terminal.frame.maxY - knobY - knobHeight,
+            width: 6,
+            height: knobHeight
+        )
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.1
+            scrollIndicator.animator().alphaValue = 1.0
+        }
+
+        fadeWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.5
+                self?.scrollIndicator.animator().alphaValue = 0
+            }
+        }
+        fadeWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: workItem)
     }
 
     override func mouseDown(with event: NSEvent) {

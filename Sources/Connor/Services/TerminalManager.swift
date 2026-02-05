@@ -73,6 +73,7 @@ final class TerminalManager: ObservableObject {
                 : theme.rightTerminalBackground.nsColor
             cached.terminalView.nativeBackgroundColor = backgroundColor
             cached.terminalView.nativeForegroundColor = ThemeManager.contrastingColor(for: backgroundColor)
+            cached.terminalView.hideNativeScroller()
         }
     }
 
@@ -216,7 +217,7 @@ final class TerminalManager: ObservableObject {
         command: String?,
         arguments: [String]
     ) -> LocalProcessTerminalView {
-        let terminalView = LocalProcessTerminalView(frame: .zero)
+        let terminalView = LocalProcessTerminalView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
 
         // Configure appearance
         let prefs = AppState.shared.preferences
@@ -236,6 +237,7 @@ final class TerminalManager: ObservableObject {
             : theme.rightTerminalBackground.nsColor
         terminalView.nativeBackgroundColor = backgroundColor
         terminalView.nativeForegroundColor = ThemeManager.contrastingColor(for: backgroundColor)
+        terminalView.hideNativeScroller()
 
         if isClaude {
             // Start claude via shell with session handling
@@ -285,6 +287,13 @@ final class TerminalManager: ObservableObject {
 // MARK: - Shell Launching Helper
 
 extension LocalProcessTerminalView {
+    /// Hides the legacy NSScroller that SwiftTerm adds internally.
+    func hideNativeScroller() {
+        if let scroller = subviews.first(where: { $0 is NSScroller }) {
+            scroller.isHidden = true
+        }
+    }
+
     /// Starts a process via a login shell, ensuring the user's full PATH is available.
     ///
     /// Launches `/bin/zsh -li -c "cd <dir> && <command>"` so that login profiles
