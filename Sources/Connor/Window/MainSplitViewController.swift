@@ -56,12 +56,19 @@ class MainSplitViewController: NSSplitViewController {
         splitView.setPosition(splitView.bounds.width - 350, ofDividerAt: 1)
     }
 
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        restorePaneVisibility()
+    }
+
     // MARK: - Pane Toggle Actions
 
     @objc func toggleLeftSidebar(_ sender: Any?) {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
             splitViewItems[0].animator().isCollapsed.toggle()
+        } completionHandler: { [weak self] in
+            self?.savePaneVisibility()
         }
     }
 
@@ -69,6 +76,8 @@ class MainSplitViewController: NSSplitViewController {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
             splitViewItems[2].animator().isCollapsed.toggle()
+        } completionHandler: { [weak self] in
+            self?.savePaneVisibility()
         }
     }
 
@@ -82,6 +91,29 @@ class MainSplitViewController: NSSplitViewController {
 
     var isRightPaneCollapsed: Bool {
         splitViewItems[2].isCollapsed
+    }
+
+    // MARK: - Pane Visibility Persistence
+
+    /// Save current pane visibility state to preferences
+    func savePaneVisibility() {
+        Task { @MainActor in
+            AppState.shared.preferences.isLeftPaneVisible = !isLeftSidebarCollapsed
+            AppState.shared.preferences.isRightPaneVisible = !isRightPaneCollapsed
+            AppState.shared.savePreferences()
+        }
+    }
+
+    /// Restore pane visibility from saved preferences
+    private func restorePaneVisibility() {
+        let prefs = AppState.shared.preferences
+        // Restore without animation on launch
+        if !prefs.isLeftPaneVisible {
+            splitViewItems[0].isCollapsed = true
+        }
+        if !prefs.isRightPaneVisible {
+            splitViewItems[2].isCollapsed = true
+        }
     }
 
     // MARK: - State Notifications

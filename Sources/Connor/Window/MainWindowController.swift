@@ -44,7 +44,6 @@ class MainWindowController: NSWindowController, NSToolbarDelegate {
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         [
-            .toggleSidebar,
             .sidebarTrackingSeparator,
             .branchDisplay,
             .flexibleSpace,

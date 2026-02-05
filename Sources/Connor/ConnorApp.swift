@@ -44,6 +44,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         // Ensure window frame is saved before termination
         mainWindowController?.window?.saveFrame(usingName: "MainWindow")
+
+        // Save pane visibility state
+        if let splitVC = mainWindowController?.window?.contentViewController as? MainSplitViewController {
+            splitVC.savePaneVisibility()
+        }
     }
 
     // MARK: - Menu Commands
