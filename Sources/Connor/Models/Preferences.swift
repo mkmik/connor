@@ -65,6 +65,10 @@ struct Preferences: Codable, Equatable {
     var isBottomPanelExpanded: Bool
     var bottomPanelHeight: CGFloat?
 
+    // Font settings
+    var monospaceFontSize: CGFloat
+    var monospaceFontName: String?  // nil means system monospace
+
     static var `default`: Preferences {
         Preferences(
             connorRootDirectory: FileManager.default.homeDirectoryForCurrentUser
@@ -85,7 +89,9 @@ struct Preferences: Codable, Equatable {
             isLeftPaneVisible: true,
             isRightPaneVisible: true,
             isBottomPanelExpanded: false,
-            bottomPanelHeight: nil
+            bottomPanelHeight: nil,
+            monospaceFontSize: 13,
+            monospaceFontName: nil
         )
     }
 
@@ -108,7 +114,9 @@ struct Preferences: Codable, Equatable {
         isLeftPaneVisible: Bool,
         isRightPaneVisible: Bool,
         isBottomPanelExpanded: Bool,
-        bottomPanelHeight: CGFloat?
+        bottomPanelHeight: CGFloat?,
+        monospaceFontSize: CGFloat,
+        monospaceFontName: String?
     ) {
         self.connorRootDirectory = connorRootDirectory
         self.recentRepositories = recentRepositories
@@ -128,6 +136,8 @@ struct Preferences: Codable, Equatable {
         self.isRightPaneVisible = isRightPaneVisible
         self.isBottomPanelExpanded = isBottomPanelExpanded
         self.bottomPanelHeight = bottomPanelHeight
+        self.monospaceFontSize = monospaceFontSize
+        self.monospaceFontName = monospaceFontName
     }
 
     // Custom decoder to handle migration from older preferences without theme fields
@@ -156,6 +166,10 @@ struct Preferences: Codable, Equatable {
         isRightPaneVisible = try container.decodeIfPresent(Bool.self, forKey: .isRightPaneVisible) ?? true
         isBottomPanelExpanded = try container.decodeIfPresent(Bool.self, forKey: .isBottomPanelExpanded) ?? false
         bottomPanelHeight = try container.decodeIfPresent(CGFloat.self, forKey: .bottomPanelHeight)
+
+        // Font settings - default to 13pt system monospace if missing
+        monospaceFontSize = try container.decodeIfPresent(CGFloat.self, forKey: .monospaceFontSize) ?? 13
+        monospaceFontName = try container.decodeIfPresent(String.self, forKey: .monospaceFontName)
     }
 
     mutating func addRecentRepository(_ url: URL) {

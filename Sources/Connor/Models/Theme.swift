@@ -161,4 +161,5 @@ struct Theme: Codable, Equatable, Identifiable, Hashable {
 
 extension Notification.Name {
     static let themeDidChange = Notification.Name("themeDidChange")
+    static let fontPreferencesDidChange = Notification.Name("fontPreferencesDidChange")
 }

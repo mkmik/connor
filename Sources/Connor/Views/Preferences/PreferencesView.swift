@@ -46,6 +46,17 @@ struct GeneralPreferencesTab: View {
     @State private var selectedEditor: ExternalEditor = .cursor
     @State private var selectedTheme: AppTheme = .system
     @State private var branchPrefix: String = ""
+    @State private var fontSize: Double = 13
+    @State private var selectedFontName: String = ""  // empty string means system monospace
+
+    private var availableMonospaceFonts: [String] {
+        let fontManager = NSFontManager.shared
+        let monospaceFonts = fontManager.availableFontFamilies.filter { family in
+            guard let font = NSFont(name: family, size: 12) else { return false }
+            return font.isFixedPitch
+        }
+        return monospaceFonts.sorted()
+    }
 
     var body: some View {
         Form {
@@ -102,6 +113,34 @@ struct GeneralPreferencesTab: View {
             } header: {
                 Text("Theme")
             }
+
+            Section {
+                Picker("Font", selection: $selectedFontName) {
+                    Text("System Monospace").tag("")
+                    Divider()
+                    ForEach(availableMonospaceFonts, id: \.self) { fontName in
+                        Text(fontName)
+                            .font(.custom(fontName, size: 13))
+                            .tag(fontName)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                HStack {
+                    Text("Size")
+                    Spacer()
+                    Stepper(value: $fontSize, in: 9...24, step: 1) {
+                        Text("\(Int(fontSize)) pt")
+                            .monospacedDigit()
+                    }
+                }
+
+                Text("Affects terminals and file viewer")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text("Font")
+            }
         }
         .formStyle(.grouped)
         .padding()
@@ -110,6 +149,8 @@ struct GeneralPreferencesTab: View {
             selectedEditor = appState.preferences.preferredEditor
             selectedTheme = appState.preferences.theme
             branchPrefix = appState.preferences.branchNamePrefix
+            fontSize = Double(appState.preferences.monospaceFontSize)
+            selectedFontName = appState.preferences.monospaceFontName ?? ""
         }
         .onChange(of: selectedEditor) {
             appState.preferences.preferredEditor = selectedEditor
@@ -122,6 +163,16 @@ struct GeneralPreferencesTab: View {
         .onChange(of: branchPrefix) {
             appState.preferences.branchNamePrefix = branchPrefix
             appState.savePreferences()
+        }
+        .onChange(of: fontSize) {
+            appState.preferences.monospaceFontSize = CGFloat(fontSize)
+            appState.savePreferences()
+            appState.notifyFontPreferencesChanged()
+        }
+        .onChange(of: selectedFontName) {
+            appState.preferences.monospaceFontName = selectedFontName.isEmpty ? nil : selectedFontName
+            appState.savePreferences()
+            appState.notifyFontPreferencesChanged()
         }
     }
 
