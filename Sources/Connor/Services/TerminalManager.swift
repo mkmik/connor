@@ -141,18 +141,11 @@ final class TerminalManager: ObservableObject {
         let key = claudeKey(for: workspaceId)
         guard let cached = terminals[key] else { return }
 
-        // Build environment
-        var env = ProcessInfo.processInfo.environment
-        env["TERM"] = "xterm-256color"
-        env["LANG"] = "en_US.UTF-8"
-        let envStrings = env.map { "\($0.key)=\($0.value)" }
-
         // Restart claude process with session handling
         let claudeCmd = claudeCommand(for: workspaceId)
-        cached.terminalView.startProcess(
-            executable: "/bin/zsh",
-            args: ["-c", "cd \"\(workingDirectory.path)\" && \(claudeCmd)"],
-            environment: envStrings,
+        cached.terminalView.startLoginShell(
+            workingDirectory: workingDirectory,
+            command: claudeCmd,
             execName: "claude"
         )
     }
@@ -244,33 +237,26 @@ final class TerminalManager: ObservableObject {
         terminalView.nativeBackgroundColor = backgroundColor
         terminalView.nativeForegroundColor = ThemeManager.contrastingColor(for: backgroundColor)
 
-        // Build environment
-        var env = ProcessInfo.processInfo.environment
-        env["TERM"] = "xterm-256color"
-        env["LANG"] = "en_US.UTF-8"
-        let envStrings = env.map { "\($0.key)=\($0.value)" }
-
         if isClaude {
             // Start claude via shell with session handling
             let claudeCmd = claudeCommand(for: workspaceId)
-            terminalView.startProcess(
-                executable: "/bin/zsh",
-                args: ["-c", "cd \"\(workingDirectory.path)\" && \(claudeCmd)"],
-                environment: envStrings,
+            terminalView.startLoginShell(
+                workingDirectory: workingDirectory,
+                command: claudeCmd,
                 execName: "claude"
             )
         } else {
             // Start regular shell via exec (clean startup without visible cd command)
+            let env = ProcessInfo.processInfo.environment
             let shell = command ?? (env["SHELL"] ?? "/bin/zsh")
 
             // Shell-escape arguments using single quotes
             let quotedArgs = arguments.map { "'" + $0.replacingOccurrences(of: "'", with: "'\\''") + "'" }
             let argsStr = quotedArgs.isEmpty ? "" : " " + quotedArgs.joined(separator: " ")
 
-            terminalView.startProcess(
-                executable: "/bin/zsh",
-                args: ["-c", "cd \"\(workingDirectory.path)\" && exec \(shell)\(argsStr)"],
-                environment: envStrings,
+            terminalView.startLoginShell(
+                workingDirectory: workingDirectory,
+                command: "exec \(shell)\(argsStr)",
                 execName: shell
             )
         }
@@ -293,6 +279,38 @@ final class TerminalManager: ObservableObject {
         if let oldest = sortedByAccess.first {
             terminals.removeValue(forKey: oldest.key)
         }
+    }
+}
+
+// MARK: - Shell Launching Helper
+
+extension LocalProcessTerminalView {
+    /// Starts a process via a login shell, ensuring the user's full PATH is available.
+    ///
+    /// Launches `/bin/zsh -l -c "cd <dir> && <command>"` so that login profiles
+    /// (`/etc/zprofile`, `~/.zprofile`) are sourced before executing the command.
+    /// This matches Terminal.app/iTerm behavior and avoids the minimal PATH that
+    /// macOS GUI apps inherit.
+    func startLoginShell(
+        workingDirectory: URL,
+        command: String,
+        extraEnvironment: [String: String] = [:],
+        execName: String? = nil
+    ) {
+        var env = ProcessInfo.processInfo.environment
+        env["TERM"] = "xterm-256color"
+        env["LANG"] = "en_US.UTF-8"
+        for (key, value) in extraEnvironment {
+            env[key] = value
+        }
+        let envStrings = env.map { "\($0.key)=\($0.value)" }
+
+        startProcess(
+            executable: "/bin/zsh",
+            args: ["-l", "-c", "cd \"\(workingDirectory.path)\" && \(command)"],
+            environment: envStrings,
+            execName: execName ?? "/bin/zsh"
+        )
     }
 }
 
