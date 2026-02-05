@@ -68,9 +68,6 @@ struct MainContentView: View {
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .sheet(isPresented: $appState.showNewWorkspaceSheet) {
-            NewWorkspaceSheet()
-        }
     }
 }
 
