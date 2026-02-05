@@ -42,6 +42,11 @@ struct GitLabMergeRequest: Codable, Identifiable {
         guard let status = headPipeline?.status else { return false }
         return status == "running" || status == "pending"
     }
+
+    /// Whether the pipeline has failed
+    var hasPipelineFailed: Bool {
+        headPipeline?.status == "failed"
+    }
 }
 
 /// Errors from GitLab operations
