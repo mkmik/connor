@@ -62,6 +62,8 @@ struct Preferences: Codable, Equatable {
     // Pane visibility state
     var isLeftPaneVisible: Bool
     var isRightPaneVisible: Bool
+    var isBottomPanelExpanded: Bool
+    var bottomPanelHeight: CGFloat?
 
     static var `default`: Preferences {
         Preferences(
@@ -81,7 +83,9 @@ struct Preferences: Codable, Equatable {
             customThemes: [],
             selectedThemeId: Theme.light.id,
             isLeftPaneVisible: true,
-            isRightPaneVisible: true
+            isRightPaneVisible: true,
+            isBottomPanelExpanded: false,
+            bottomPanelHeight: nil
         )
     }
 
@@ -102,7 +106,9 @@ struct Preferences: Codable, Equatable {
         customThemes: [Theme],
         selectedThemeId: UUID?,
         isLeftPaneVisible: Bool,
-        isRightPaneVisible: Bool
+        isRightPaneVisible: Bool,
+        isBottomPanelExpanded: Bool,
+        bottomPanelHeight: CGFloat?
     ) {
         self.connorRootDirectory = connorRootDirectory
         self.recentRepositories = recentRepositories
@@ -120,6 +126,8 @@ struct Preferences: Codable, Equatable {
         self.selectedThemeId = selectedThemeId
         self.isLeftPaneVisible = isLeftPaneVisible
         self.isRightPaneVisible = isRightPaneVisible
+        self.isBottomPanelExpanded = isBottomPanelExpanded
+        self.bottomPanelHeight = bottomPanelHeight
     }
 
     // Custom decoder to handle migration from older preferences without theme fields
@@ -146,6 +154,8 @@ struct Preferences: Codable, Equatable {
         // Pane visibility - default to visible if missing
         isLeftPaneVisible = try container.decodeIfPresent(Bool.self, forKey: .isLeftPaneVisible) ?? true
         isRightPaneVisible = try container.decodeIfPresent(Bool.self, forKey: .isRightPaneVisible) ?? true
+        isBottomPanelExpanded = try container.decodeIfPresent(Bool.self, forKey: .isBottomPanelExpanded) ?? false
+        bottomPanelHeight = try container.decodeIfPresent(CGFloat.self, forKey: .bottomPanelHeight)
     }
 
     mutating func addRecentRepository(_ url: URL) {

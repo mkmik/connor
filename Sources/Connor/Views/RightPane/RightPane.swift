@@ -3,8 +3,9 @@ import SwiftUI
 struct RightPane: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var themeManager: ThemeManager
-    @State private var selectedTab: RightPaneTab = .files
-    @State private var topPaneHeight: CGFloat = 400
+
+    /// When false, only shows the top section (Files/Changes/Checks) without the terminal
+    var showTerminalSection: Bool = true
 
     var selectedWorkspace: Workspace? {
         appState.selectedWorkspace
@@ -14,6 +15,38 @@ struct RightPane: View {
         guard let id = appState.selectedWorkspaceId else { return nil }
         return appState.sessionState(for: id)
     }
+
+    var body: some View {
+        if showTerminalSection {
+            VSplitView {
+                RightPaneTopSection()
+                    .frame(minHeight: 200)
+
+                // Bottom section - Additional terminals
+                if let session = sessionState, let workspace = selectedWorkspace {
+                    TerminalSection(session: session, workspace: workspace)
+                        .frame(minHeight: 150)
+                } else {
+                    VStack(spacing: 0) {
+                        EmptyStateView(
+                            icon: "terminal",
+                            title: "No Workspace",
+                            subtitle: "Select a workspace to use terminals"
+                        )
+                    }
+                    .frame(minHeight: 150)
+                }
+            }
+        } else {
+            RightPaneTopSection()
+        }
+    }
+}
+
+/// Top section of the right pane containing Files/Changes/Checks tabs
+struct RightPaneTopSection: View {
+    @EnvironmentObject var themeManager: ThemeManager
+    @State private var selectedTab: RightPaneTab = .files
 
     /// Background color for the current tab content
     var contentBackgroundColor: Color {
@@ -28,60 +61,41 @@ struct RightPane: View {
     }
 
     var body: some View {
-        VSplitView {
-            // Top section - Files/Changes/Checks tabs
-            VStack(spacing: 0) {
-                Divider()
-                .background(Color(nsColor: .windowBackgroundColor))
+        VStack(spacing: 0) {
+            Divider()
+            .background(Color(nsColor: .windowBackgroundColor))
 
-                // Tab bar
-                HStack(spacing: 0) {
-                    ForEach(RightPaneTab.allCases) { tab in
-                        RightPaneTabButton(
-                            tab: tab,
-                            isSelected: selectedTab == tab
-                        ) {
-                            selectedTab = tab
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
-                .frame(height: 36)
-                .background(themeManager.currentTheme.rightToolbarBackground.color)
-
-                Divider()
-
-                // Tab content
-                Group {
-                    switch selectedTab {
-                    case .files:
-                        FileNavigatorView()
-                    case .changes:
-                        GitChangesView()
-                    case .checks:
-                        CIStatusView()
+            // Tab bar
+            HStack(spacing: 0) {
+                ForEach(RightPaneTab.allCases) { tab in
+                    RightPaneTabButton(
+                        tab: tab,
+                        isSelected: selectedTab == tab
+                    ) {
+                        selectedTab = tab
                     }
                 }
+                Spacer()
             }
-            .background(contentBackgroundColor)
-            .frame(minHeight: 200)
+            .padding(.horizontal, 8)
+            .frame(height: 36)
+            .background(themeManager.currentTheme.rightToolbarBackground.color)
 
-            // Bottom section - Additional terminals
-            if let session = sessionState, let workspace = selectedWorkspace {
-                TerminalSection(session: session, workspace: workspace)
-                    .frame(minHeight: 150)
-            } else {
-                VStack(spacing: 0) {
-                    EmptyStateView(
-                        icon: "terminal",
-                        title: "No Workspace",
-                        subtitle: "Select a workspace to use terminals"
-                    )
+            Divider()
+
+            // Tab content
+            Group {
+                switch selectedTab {
+                case .files:
+                    FileNavigatorView()
+                case .changes:
+                    GitChangesView()
+                case .checks:
+                    CIStatusView()
                 }
-                .frame(minHeight: 150)
             }
         }
+        .background(contentBackgroundColor)
     }
 }
 

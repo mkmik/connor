@@ -15,7 +15,7 @@ struct PaneTogglesView: View {
                 systemImage: "rectangle.bottomhalf.inset.filled",
                 tooltip: "Toggle Bottom Panel"
             ) {
-                // No-op for now
+                NSApp.sendAction(#selector(MainSplitViewController.toggleBottomPanel(_:)), to: nil, from: nil)
             }
 
             PaneToggleButton(
