@@ -69,7 +69,7 @@ final class AppState: ObservableObject {
     }
 
     private func startChecksRefreshTimer() {
-        // Refresh checks every 30 seconds (only if pipeline is running)
+        // Refresh checks every 30 seconds
         Task { @MainActor [weak self] in
             while true {
                 try? await Task.sleep(for: .seconds(30))
@@ -78,16 +78,12 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Refresh checks for the currently selected workspace (if pipeline is running)
+    /// Refresh checks for the currently selected workspace
     private func refreshActiveWorkspaceChecks() {
         guard let workspaceId = selectedWorkspaceId,
               let workspace = selectedWorkspace else { return }
 
         let sessionState = sessionState(for: workspaceId)
-
-        // Only auto-refresh if pipeline is running/pending
-        guard sessionState.checksState.hasPipelineRunning else { return }
-
         refreshChecks(for: workspace, sessionState: sessionState)
     }
 
