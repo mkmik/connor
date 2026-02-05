@@ -9,6 +9,7 @@ extension NSToolbarItem.Identifier {
     static let branchDisplay = Self("branchDisplay")
     static let openInMenu = Self("openInMenu")
     static let createMR = Self("createMR")
+    static let paneToggles = Self("paneToggles")
 }
 
 // MARK: - Generic Hosted Toolbar Item

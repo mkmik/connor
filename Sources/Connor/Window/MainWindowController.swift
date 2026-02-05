@@ -50,7 +50,9 @@ class MainWindowController: NSWindowController, NSToolbarDelegate {
             .flexibleSpace,
             .openInMenu,
             .contentTrackingSeparator,
-            .createMR
+            .createMR,
+            .flexibleSpace,
+            .paneToggles
         ]
     }
 
@@ -88,6 +90,9 @@ class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         case .createMR:
             return HostedToolbarItem(itemIdentifier, view: CreateMRButton())
+
+        case .paneToggles:
+            return HostedToolbarItem(itemIdentifier, view: PaneTogglesView())
 
         default:
             return nil
