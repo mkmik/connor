@@ -55,6 +55,10 @@ struct Preferences: Codable, Equatable {
     var branchNamePrefix: String
     var lastSelectedWorkspaceId: UUID?
 
+    // Theme system
+    var customThemes: [Theme]
+    var selectedThemeId: UUID?
+
     static var `default`: Preferences {
         Preferences(
             connorRootDirectory: FileManager.default.homeDirectoryForCurrentUser
@@ -69,8 +73,65 @@ struct Preferences: Codable, Equatable {
             gitlabURL: nil,
             gitlabToken: nil,
             branchNamePrefix: "connor",
-            lastSelectedWorkspaceId: nil
+            lastSelectedWorkspaceId: nil,
+            customThemes: [],
+            selectedThemeId: Theme.light.id
         )
+    }
+
+    // Memberwise initializer (needed because custom decoder overrides synthesized init)
+    init(
+        connorRootDirectory: URL,
+        recentRepositories: [URL],
+        maxRecentRepos: Int,
+        preferredEditor: ExternalEditor,
+        theme: AppTheme,
+        recentlyUsedCityNames: [String],
+        maxCityNameHistory: Int,
+        defaultShell: String,
+        gitlabURL: URL?,
+        gitlabToken: String?,
+        branchNamePrefix: String,
+        lastSelectedWorkspaceId: UUID?,
+        customThemes: [Theme],
+        selectedThemeId: UUID?
+    ) {
+        self.connorRootDirectory = connorRootDirectory
+        self.recentRepositories = recentRepositories
+        self.maxRecentRepos = maxRecentRepos
+        self.preferredEditor = preferredEditor
+        self.theme = theme
+        self.recentlyUsedCityNames = recentlyUsedCityNames
+        self.maxCityNameHistory = maxCityNameHistory
+        self.defaultShell = defaultShell
+        self.gitlabURL = gitlabURL
+        self.gitlabToken = gitlabToken
+        self.branchNamePrefix = branchNamePrefix
+        self.lastSelectedWorkspaceId = lastSelectedWorkspaceId
+        self.customThemes = customThemes
+        self.selectedThemeId = selectedThemeId
+    }
+
+    // Custom decoder to handle migration from older preferences without theme fields
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        connorRootDirectory = try container.decode(URL.self, forKey: .connorRootDirectory)
+        recentRepositories = try container.decode([URL].self, forKey: .recentRepositories)
+        maxRecentRepos = try container.decode(Int.self, forKey: .maxRecentRepos)
+        preferredEditor = try container.decode(ExternalEditor.self, forKey: .preferredEditor)
+        theme = try container.decode(AppTheme.self, forKey: .theme)
+        recentlyUsedCityNames = try container.decode([String].self, forKey: .recentlyUsedCityNames)
+        maxCityNameHistory = try container.decode(Int.self, forKey: .maxCityNameHistory)
+        defaultShell = try container.decode(String.self, forKey: .defaultShell)
+        gitlabURL = try container.decodeIfPresent(URL.self, forKey: .gitlabURL)
+        gitlabToken = try container.decodeIfPresent(String.self, forKey: .gitlabToken)
+        branchNamePrefix = try container.decode(String.self, forKey: .branchNamePrefix)
+        lastSelectedWorkspaceId = try container.decodeIfPresent(UUID.self, forKey: .lastSelectedWorkspaceId)
+
+        // New theme properties - use defaults if missing (migration from older versions)
+        customThemes = try container.decodeIfPresent([Theme].self, forKey: .customThemes) ?? []
+        selectedThemeId = try container.decodeIfPresent(UUID.self, forKey: .selectedThemeId) ?? Theme.light.id
     }
 
     mutating func addRecentRepository(_ url: URL) {

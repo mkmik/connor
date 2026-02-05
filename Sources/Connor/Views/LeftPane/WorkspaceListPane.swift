@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkspaceListPane: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,7 +37,7 @@ struct WorkspaceListPane: View {
                 workspaceList
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .background(themeManager.currentTheme.leftPaneBackground.color)
     }
 
     private var emptyState: some View {
@@ -110,5 +111,6 @@ struct WorkspaceListPane: View {
 #Preview {
     WorkspaceListPane()
         .environmentObject(AppState())
+        .environmentObject(ThemeManager.shared)
         .frame(width: 220, height: 600)
 }

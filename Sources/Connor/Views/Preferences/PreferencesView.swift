@@ -3,6 +3,7 @@ import SwiftUI
 struct PreferencesView: View {
     private enum Tab: String, CaseIterable {
         case general = "General"
+        case themes = "Themes"
         case repositories = "Repositories"
         case gitlab = "GitLab"
     }
@@ -17,6 +18,12 @@ struct PreferencesView: View {
                 }
                 .tag(Tab.general)
 
+            ThemePreferencesTab()
+                .tabItem {
+                    Label("Themes", systemImage: "paintpalette")
+                }
+                .tag(Tab.themes)
+
             RepositoriesPreferencesTab()
                 .tabItem {
                     Label("Repositories", systemImage: "folder")
@@ -29,7 +36,7 @@ struct PreferencesView: View {
                 }
                 .tag(Tab.gitlab)
         }
-        .frame(width: 500, height: 400)
+        .frame(width: 600, height: 500)
     }
 }
 
@@ -318,4 +325,5 @@ struct GitLabPreferencesTab: View {
 #Preview {
     PreferencesView()
         .environmentObject(AppState())
+        .environmentObject(ThemeManager.shared)
 }

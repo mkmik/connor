@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TerminalTabBar: View {
+    @EnvironmentObject var themeManager: ThemeManager
     @Binding var terminals: [TerminalSessionState]
     @Binding var selectedTerminalId: UUID?
     let onAddTerminal: () -> Void
@@ -41,7 +42,7 @@ struct TerminalTabBar: View {
             .padding(.trailing, 8)
         }
         .frame(height: 32)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(themeManager.currentTheme.rightToolbarBackground.color)
     }
 }
 
@@ -109,6 +110,7 @@ struct TerminalTab: View {
                     terminals.removeAll { $0.id == id }
                 }
             )
+            .environmentObject(ThemeManager.shared)
         }
     }
 

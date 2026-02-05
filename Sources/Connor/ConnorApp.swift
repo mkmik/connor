@@ -8,6 +8,7 @@ struct ConnorApp: App {
         Settings {
             PreferencesView()
                 .environmentObject(AppState.shared)
+                .environmentObject(ThemeManager.shared)
         }
     }
 }

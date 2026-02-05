@@ -11,7 +11,9 @@ class MainSplitViewController: NSSplitViewController {
 
         // Sidebar (collapsible, left)
         let sidebarVC = NSHostingController(
-            rootView: WorkspaceListPane().environmentObject(AppState.shared)
+            rootView: WorkspaceListPane()
+                .environmentObject(AppState.shared)
+                .environmentObject(ThemeManager.shared)
         )
         let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarVC)
         sidebarItem.minimumThickness = 180
@@ -20,14 +22,18 @@ class MainSplitViewController: NSSplitViewController {
 
         // Content (middle)
         let contentVC = NSHostingController(
-            rootView: ClaudeSessionPane().environmentObject(AppState.shared)
+            rootView: ClaudeSessionPane()
+                .environmentObject(AppState.shared)
+                .environmentObject(ThemeManager.shared)
         )
         let contentItem = NSSplitViewItem(contentListWithViewController: contentVC)
         contentItem.minimumThickness = 400
 
         // Detail (right, collapsible)
         let detailVC = NSHostingController(
-            rootView: RightPane().environmentObject(AppState.shared)
+            rootView: RightPane()
+                .environmentObject(AppState.shared)
+                .environmentObject(ThemeManager.shared)
         )
         let detailItem = NSSplitViewItem(viewController: detailVC)
         detailItem.minimumThickness = 280

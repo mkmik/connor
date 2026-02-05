@@ -255,6 +255,8 @@ final class AppState: ObservableObject {
 
     func loadPreferences() {
         preferences = preferencesService.load()
+        // Load theme settings into ThemeManager
+        ThemeManager.shared.loadThemes(from: preferences)
     }
 
     func savePreferences() {

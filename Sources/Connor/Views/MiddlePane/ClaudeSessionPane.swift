@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ClaudeSessionPane: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var themeManager: ThemeManager
 
     var sessionState: WorkspaceSessionState? {
         guard let id = appState.selectedWorkspaceId else { return nil }
@@ -31,7 +32,7 @@ struct ClaudeSessionPane: View {
                 }
                 .padding(.horizontal, 8)
                 .frame(height: 36)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(themeManager.currentTheme.centralToolbarBackground.color)
             }
 
             Divider()
@@ -58,6 +59,7 @@ struct ClaudeSessionPane: View {
 
 struct MiddlePaneTabBar: View {
     @ObservedObject var session: WorkspaceSessionState
+    @EnvironmentObject var themeManager: ThemeManager
 
     var body: some View {
         HStack(spacing: 0) {
@@ -91,7 +93,7 @@ struct MiddlePaneTabBar: View {
             Spacer()
         }
         .frame(height: 36)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(themeManager.currentTheme.centralToolbarBackground.color)
     }
 }
 
@@ -168,5 +170,6 @@ struct MiddlePaneContent: View {
 #Preview {
     ClaudeSessionPane()
         .environmentObject(AppState())
+        .environmentObject(ThemeManager.shared)
         .frame(width: 800, height: 600)
 }
