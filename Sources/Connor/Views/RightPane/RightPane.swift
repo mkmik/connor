@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RightPane: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var selectedTab: RightPaneTab = .files
     @State private var topPaneHeight: CGFloat = 400
 
@@ -14,12 +15,24 @@ struct RightPane: View {
         return appState.sessionState(for: id)
     }
 
+    /// Background color for the current tab content
+    var contentBackgroundColor: Color {
+        switch selectedTab {
+        case .files:
+            return themeManager.currentTheme.rightFileManagerBackground.color
+        case .changes:
+            return themeManager.currentTheme.rightChangesBackground.color
+        case .checks:
+            return themeManager.currentTheme.rightChecksBackground.color
+        }
+    }
+
     var body: some View {
         VSplitView {
             // Top section - Files/Changes/Checks tabs
             VStack(spacing: 0) {
                 Divider()
-                .background(Color(nsColor: .windowBackgroundColor))   
+                .background(Color(nsColor: .windowBackgroundColor))
 
                 // Tab bar
                 HStack(spacing: 0) {
@@ -35,7 +48,7 @@ struct RightPane: View {
                 }
                 .padding(.horizontal, 8)
                 .frame(height: 36)
-                .background(Color(nsColor: .textBackgroundColor))
+                .background(themeManager.currentTheme.rightToolbarBackground.color)
 
                 Divider()
 
@@ -51,7 +64,7 @@ struct RightPane: View {
                     }
                 }
             }
-            .background(Color(nsColor: .textBackgroundColor))
+            .background(contentBackgroundColor)
             .frame(minHeight: 200)
 
             // Bottom section - Additional terminals
@@ -75,6 +88,7 @@ struct RightPane: View {
 /// Terminal section that properly observes WorkspaceSessionState changes
 struct TerminalSection: View {
     @ObservedObject var session: WorkspaceSessionState
+    @EnvironmentObject var themeManager: ThemeManager
     let workspace: Workspace
 
     var body: some View {
@@ -118,7 +132,7 @@ struct TerminalSection: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(nsColor: .textBackgroundColor))
+                .background(themeManager.currentTheme.rightTerminalBackground.color)
             } else {
                 EmptyStateView(
                     icon: "terminal",
@@ -159,5 +173,6 @@ struct RightPaneTabButton: View {
 #Preview {
     RightPane()
         .environmentObject(AppState())
+        .environmentObject(ThemeManager.shared)
         .frame(width: 350, height: 600)
 }

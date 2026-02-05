@@ -18,7 +18,43 @@ final class TerminalManager: ObservableObject {
     /// Maximum number of cached terminals for memory management
     private let maxCachedTerminals: Int = 10
 
-    private init() {}
+    /// Observer for theme changes
+    private var themeObserver: NSObjectProtocol?
+
+    private init() {
+        // Subscribe to theme changes
+        themeObserver = NotificationCenter.default.addObserver(
+            forName: .themeDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let theme = notification.userInfo?["theme"] as? Theme else { return }
+            guard let self = self else { return }
+            Task { @MainActor [self] in
+                self.applyTheme(theme)
+            }
+        }
+    }
+
+    deinit {
+        if let observer = themeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    // MARK: - Theme Application
+
+    /// Updates all cached terminal backgrounds to match the current theme
+    func applyTheme(_ theme: Theme) {
+        for (key, cached) in terminals {
+            let isClaudeTerminal = key.hasSuffix(":claude")
+            let backgroundColor = isClaudeTerminal
+                ? theme.centralTerminalBackground.nsColor
+                : theme.rightTerminalBackground.nsColor
+            cached.terminalView.nativeBackgroundColor = backgroundColor
+            cached.terminalView.nativeForegroundColor = ThemeManager.contrastingColor(for: backgroundColor)
+        }
+    }
 
     // MARK: - Public API
 
@@ -140,8 +176,14 @@ final class TerminalManager: ObservableObject {
         // Configure appearance
         terminalView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         terminalView.optionAsMetaKey = true
-        terminalView.nativeBackgroundColor = .white
-        terminalView.nativeForegroundColor = .black
+
+        // Use theme colors
+        let theme = ThemeManager.shared.currentTheme
+        let backgroundColor = isClaude
+            ? theme.centralTerminalBackground.nsColor
+            : theme.rightTerminalBackground.nsColor
+        terminalView.nativeBackgroundColor = backgroundColor
+        terminalView.nativeForegroundColor = ThemeManager.contrastingColor(for: backgroundColor)
 
         // Build environment
         var env = ProcessInfo.processInfo.environment

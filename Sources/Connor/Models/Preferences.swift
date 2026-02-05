@@ -55,6 +55,10 @@ struct Preferences: Codable, Equatable {
     var branchNamePrefix: String
     var lastSelectedWorkspaceId: UUID?
 
+    // Theme system
+    var customThemes: [Theme]
+    var selectedThemeId: UUID?
+
     static var `default`: Preferences {
         Preferences(
             connorRootDirectory: FileManager.default.homeDirectoryForCurrentUser
@@ -69,7 +73,9 @@ struct Preferences: Codable, Equatable {
             gitlabURL: nil,
             gitlabToken: nil,
             branchNamePrefix: "connor",
-            lastSelectedWorkspaceId: nil
+            lastSelectedWorkspaceId: nil,
+            customThemes: [],
+            selectedThemeId: Theme.light.id
         )
     }
 
