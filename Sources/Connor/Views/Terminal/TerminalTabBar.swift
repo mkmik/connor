@@ -41,7 +41,7 @@ struct TerminalTabBar: View {
             .help("New Terminal")
             .padding(.trailing, 8)
         }
-        .frame(height: 32)
+        .frame(height: TabBarConstants.height)
         .background(themeManager.currentTheme.rightToolbarBackground.color)
     }
 }
@@ -79,7 +79,7 @@ struct TerminalTab: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .fill(isSelected ? Color.accentColor.opacity(0.15) : (isHovering ? Color.secondary.opacity(0.1) : Color.clear))
