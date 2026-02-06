@@ -12,8 +12,8 @@ struct ClaudeSessionPane: View {
     var body: some View {
         VStack(spacing: 0) {
             Divider()
-            .background(Color(nsColor: .windowBackgroundColor))   
-            
+            .background(Color(nsColor: .windowBackgroundColor))
+
             // Tab bar
             if let session = sessionState {
                 MiddlePaneTabBar(session: session)
@@ -92,7 +92,7 @@ struct MiddlePaneTabBar: View {
 
             Spacer()
         }
-        .frame(height: 36)
+        .frame(height: TabBarConstants.height)
         .background(themeManager.currentTheme.centralToolbarBackground.color)
     }
 }
@@ -132,7 +132,7 @@ struct MiddlePaneTabButton: View {
         }
         .foregroundColor(isSelected ? .primary : .secondary)
         .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .fill(isSelected ? Color.accentColor.opacity(0.15) : (isHovering ? Color.secondary.opacity(0.1) : Color.clear))

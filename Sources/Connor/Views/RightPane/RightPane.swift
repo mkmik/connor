@@ -78,7 +78,7 @@ struct RightPaneTopSection: View {
                 Spacer()
             }
             .padding(.horizontal, 8)
-            .frame(height: 36)
+            .frame(height: TabBarConstants.height)
             .background(themeManager.currentTheme.rightToolbarBackground.color)
 
             Divider()
@@ -171,7 +171,7 @@ struct RightPaneTabButton: View {
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                 .foregroundColor(isSelected ? .primary : .secondary)
                 .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
         .background(
