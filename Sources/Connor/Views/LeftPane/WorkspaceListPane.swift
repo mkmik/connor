@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkspaceListPane: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var themeManager: ThemeManager
+    @State private var workspaceToDelete: Workspace?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -86,16 +87,33 @@ struct WorkspaceListPane: View {
             }
             .onDelete { indexSet in
                 let sorted = appState.sortedWorkspaces
-                for index in indexSet {
-                    let workspace = sorted[index]
-                    Task {
-                        await deleteWorkspace(workspace)
-                    }
+                if let index = indexSet.first {
+                    workspaceToDelete = sorted[index]
                 }
             }
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
+        .alert("Delete Workspace", isPresented: Binding(
+            get: { workspaceToDelete != nil },
+            set: { if !$0 { workspaceToDelete = nil } }
+        )) {
+            Button("Delete", role: .destructive) {
+                if let workspace = workspaceToDelete {
+                    Task {
+                        await deleteWorkspace(workspace)
+                    }
+                    workspaceToDelete = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                workspaceToDelete = nil
+            }
+        } message: {
+            if let workspace = workspaceToDelete {
+                Text("Are you sure you want to delete \"\(workspace.effectiveName)\"? This will remove the worktree and cannot be undone.")
+            }
+        }
     }
 
     private func deleteWorkspace(_ workspace: Workspace) async {

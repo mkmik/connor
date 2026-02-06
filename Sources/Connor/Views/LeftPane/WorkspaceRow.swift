@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkspaceRow: View {
     let workspace: Workspace
     @EnvironmentObject var appState: AppState
+    @State private var showDeleteConfirmation = false
 
     private var isSelected: Bool {
         appState.selectedWorkspaceId == workspace.id
@@ -84,8 +85,16 @@ struct WorkspaceRow: View {
             Divider()
 
             Button("Delete", role: .destructive) {
+                showDeleteConfirmation = true
+            }
+        }
+        .alert("Delete Workspace", isPresented: $showDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
                 deleteWorkspace()
             }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete \"\(workspace.effectiveName)\"? This will remove the worktree and cannot be undone.")
         }
     }
 
