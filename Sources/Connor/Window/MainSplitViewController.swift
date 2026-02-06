@@ -13,6 +13,12 @@ class MainSplitViewController: NSSplitViewController {
     // Child split view controllers
     private var restVC: RestSplitViewController!
 
+    /// Tracks the last known width of the left sidebar (persists when collapsed)
+    private var lastKnownLeftWidth: CGFloat?
+
+    /// Prevents saving during toggle animation
+    private var isAnimatingLeftToggle = false
+
     /// The split view that divides center and right panes (for toolbar tracking)
     var upperSplitView: NSSplitView {
         restVC.upperSplitView
@@ -46,7 +52,9 @@ class MainSplitViewController: NSSplitViewController {
 
     override func viewWillAppear() {
         super.viewWillAppear()
-        splitView.setPosition(220, ofDividerAt: 0)
+        if AppState.shared.preferences.leftPaneWidth == nil {
+            splitView.setPosition(220, ofDividerAt: 0)
+        }
     }
 
     override func viewDidAppear() {
@@ -57,11 +65,25 @@ class MainSplitViewController: NSSplitViewController {
     // MARK: - Pane Toggle Actions
 
     @objc func toggleLeftSidebar(_ sender: Any?) {
+        let wasCollapsed = splitViewItems[0].isCollapsed
+        isAnimatingLeftToggle = true
+
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
             splitViewItems[0].animator().isCollapsed.toggle()
         } completionHandler: { [weak self] in
-            self?.savePaneVisibility()
+            guard let self = self else { return }
+            if wasCollapsed, let width = self.lastKnownLeftWidth {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.splitView.setPosition(width, ofDividerAt: 0)
+                    self.isAnimatingLeftToggle = false
+                    self.savePaneVisibility()
+                }
+            } else {
+                self.isAnimatingLeftToggle = false
+                self.savePaneVisibility()
+            }
         }
     }
 
@@ -81,6 +103,14 @@ class MainSplitViewController: NSSplitViewController {
         splitViewItems[0].isCollapsed
     }
 
+    /// The width of the left sidebar (returns last known width even when collapsed)
+    var leftSidebarWidth: CGFloat? {
+        if !splitViewItems[0].isCollapsed && !isAnimatingLeftToggle {
+            lastKnownLeftWidth = splitViewItems[0].viewController.view.frame.width
+        }
+        return lastKnownLeftWidth
+    }
+
     // MARK: - Pane Visibility Persistence
 
     func savePaneVisibility() {
@@ -89,17 +119,30 @@ class MainSplitViewController: NSSplitViewController {
             AppState.shared.preferences.isRightPaneVisible = !restVC.isRightPaneCollapsed
             AppState.shared.preferences.isBottomPanelExpanded = !restVC.isBottomPanelCollapsed
             AppState.shared.preferences.bottomPanelHeight = restVC.bottomPanelHeight
+            AppState.shared.preferences.leftPaneWidth = leftSidebarWidth
+            AppState.shared.preferences.rightPaneWidth = restVC.rightPaneWidth
             AppState.shared.savePreferences()
         }
     }
 
     private func restorePaneVisibility() {
         let prefs = AppState.shared.preferences
+
+        if let width = prefs.leftPaneWidth {
+            lastKnownLeftWidth = width
+        }
+
         if !prefs.isLeftPaneVisible {
             splitViewItems[0].isCollapsed = true
         }
+
+        if prefs.isLeftPaneVisible, let width = prefs.leftPaneWidth {
+            splitView.setPosition(width, ofDividerAt: 0)
+        }
+
         restVC.restoreVisibility(
             rightVisible: prefs.isRightPaneVisible,
+            rightWidth: prefs.rightPaneWidth,
             bottomExpanded: prefs.isBottomPanelExpanded,
             bottomHeight: prefs.bottomPanelHeight
         )
@@ -109,6 +152,9 @@ class MainSplitViewController: NSSplitViewController {
 
     override func splitViewDidResizeSubviews(_ notification: Notification) {
         super.splitViewDidResizeSubviews(notification)
+        if !isAnimatingLeftToggle {
+            savePaneVisibility()
+        }
         postVisibilityNotification()
     }
 
@@ -149,6 +195,10 @@ class RestSplitViewController: NSSplitViewController {
 
     var isBottomPanelCollapsed: Bool {
         bottomItem.isCollapsed
+    }
+
+    var rightPaneWidth: CGFloat? {
+        upperVC.rightPaneWidth
     }
 
     /// The height of the bottom panel (returns last known height even when collapsed)
@@ -228,8 +278,8 @@ class RestSplitViewController: NSSplitViewController {
         }
     }
 
-    func restoreVisibility(rightVisible: Bool, bottomExpanded: Bool, bottomHeight: CGFloat?) {
-        upperVC.restoreRightPaneVisibility(visible: rightVisible)
+    func restoreVisibility(rightVisible: Bool, rightWidth: CGFloat?, bottomExpanded: Bool, bottomHeight: CGFloat?) {
+        upperVC.restoreRightPaneVisibility(visible: rightVisible, width: rightWidth)
 
         // Store the saved height (even if panel is collapsed, so it's remembered)
         if let height = bottomHeight {
@@ -265,8 +315,21 @@ class RestSplitViewController: NSSplitViewController {
 class UpperSplitViewController: NSSplitViewController {
     private var rightItem: NSSplitViewItem!
 
+    /// Tracks the last known width of the right pane (persists when collapsed)
+    private var lastKnownRightWidth: CGFloat?
+
+    /// Prevents saving during toggle animation
+    private var isAnimatingRightToggle = false
+
     var isRightPaneCollapsed: Bool {
         rightItem.isCollapsed
+    }
+
+    var rightPaneWidth: CGFloat? {
+        if !rightItem.isCollapsed && !isAnimatingRightToggle {
+            lastKnownRightWidth = rightItem.viewController.view.frame.width
+        }
+        return lastKnownRightWidth
     }
 
     override func viewDidLoad() {
@@ -301,19 +364,56 @@ class UpperSplitViewController: NSSplitViewController {
 
     override func viewWillAppear() {
         super.viewWillAppear()
-        // Set initial position for center/right divider
-        splitView.setPosition(splitView.bounds.width - 350, ofDividerAt: 0)
-    }
-
-    func toggleRightPane() {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            rightItem.animator().isCollapsed.toggle()
+        if AppState.shared.preferences.rightPaneWidth == nil {
+            splitView.setPosition(splitView.bounds.width - 350, ofDividerAt: 0)
         }
     }
 
-    func restoreRightPaneVisibility(visible: Bool) {
+    func toggleRightPane() {
+        let wasCollapsed = rightItem.isCollapsed
+        isAnimatingRightToggle = true
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            rightItem.animator().isCollapsed.toggle()
+        } completionHandler: { [weak self] in
+            guard let self = self else { return }
+            if wasCollapsed, let width = self.lastKnownRightWidth {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    let dividerPosition = self.splitView.bounds.width - width
+                    self.splitView.setPosition(dividerPosition, ofDividerAt: 0)
+                    self.isAnimatingRightToggle = false
+                    self.notifyParentToSave()
+                }
+            } else {
+                self.isAnimatingRightToggle = false
+            }
+        }
+    }
+
+    func restoreRightPaneVisibility(visible: Bool, width: CGFloat?) {
+        if let width = width {
+            lastKnownRightWidth = width
+        }
         rightItem.isCollapsed = !visible
+        if visible, let width = width {
+            let dividerPosition = splitView.bounds.width - width
+            splitView.setPosition(dividerPosition, ofDividerAt: 0)
+        }
+    }
+
+    override func splitViewDidResizeSubviews(_ notification: Notification) {
+        super.splitViewDidResizeSubviews(notification)
+        guard !isAnimatingRightToggle else { return }
+        notifyParentToSave()
+    }
+
+    private func notifyParentToSave() {
+        if let restVC = parent as? RestSplitViewController,
+           let mainVC = restVC.parent as? MainSplitViewController {
+            mainVC.savePaneVisibility()
+        }
     }
 }
 

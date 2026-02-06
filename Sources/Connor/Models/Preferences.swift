@@ -64,6 +64,8 @@ struct Preferences: Codable, Equatable {
     var isRightPaneVisible: Bool
     var isBottomPanelExpanded: Bool
     var bottomPanelHeight: CGFloat?
+    var leftPaneWidth: CGFloat?
+    var rightPaneWidth: CGFloat?
 
     // Font settings
     var monospaceFontSize: CGFloat
@@ -90,6 +92,8 @@ struct Preferences: Codable, Equatable {
             isRightPaneVisible: true,
             isBottomPanelExpanded: false,
             bottomPanelHeight: nil,
+            leftPaneWidth: nil,
+            rightPaneWidth: nil,
             monospaceFontSize: 13,
             monospaceFontName: nil
         )
@@ -115,6 +119,8 @@ struct Preferences: Codable, Equatable {
         isRightPaneVisible: Bool,
         isBottomPanelExpanded: Bool,
         bottomPanelHeight: CGFloat?,
+        leftPaneWidth: CGFloat?,
+        rightPaneWidth: CGFloat?,
         monospaceFontSize: CGFloat,
         monospaceFontName: String?
     ) {
@@ -136,6 +142,8 @@ struct Preferences: Codable, Equatable {
         self.isRightPaneVisible = isRightPaneVisible
         self.isBottomPanelExpanded = isBottomPanelExpanded
         self.bottomPanelHeight = bottomPanelHeight
+        self.leftPaneWidth = leftPaneWidth
+        self.rightPaneWidth = rightPaneWidth
         self.monospaceFontSize = monospaceFontSize
         self.monospaceFontName = monospaceFontName
     }
@@ -166,6 +174,8 @@ struct Preferences: Codable, Equatable {
         isRightPaneVisible = try container.decodeIfPresent(Bool.self, forKey: .isRightPaneVisible) ?? true
         isBottomPanelExpanded = try container.decodeIfPresent(Bool.self, forKey: .isBottomPanelExpanded) ?? false
         bottomPanelHeight = try container.decodeIfPresent(CGFloat.self, forKey: .bottomPanelHeight)
+        leftPaneWidth = try container.decodeIfPresent(CGFloat.self, forKey: .leftPaneWidth)
+        rightPaneWidth = try container.decodeIfPresent(CGFloat.self, forKey: .rightPaneWidth)
 
         // Font settings - default to 13pt system monospace if missing
         monospaceFontSize = try container.decodeIfPresent(CGFloat.self, forKey: .monospaceFontSize) ?? 13
