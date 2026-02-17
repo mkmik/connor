@@ -76,6 +76,10 @@ struct WorkspaceRow: View {
                 openInFinder()
             }
 
+            Button("Close Session") {
+                appState.resetClaudeSession(for: workspace.id)
+            }
+
             Divider()
 
             Button("Rename...") {

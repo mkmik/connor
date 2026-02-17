@@ -31,10 +31,15 @@ struct Workspace: Identifiable, Codable, Hashable {
     var name: String
     var displayName: String?
     var repositories: [WorkspaceRepository]
+    var claudeSessionId: UUID?
     var isActive: Bool
     var sortOrder: Int
     let createdAt: Date
     var lastAccessedAt: Date
+
+    var effectiveSessionId: UUID {
+        claudeSessionId ?? id
+    }
 
     var primaryRepository: WorkspaceRepository? {
         repositories.first(where: { $0.isMainRepo }) ?? repositories.first
