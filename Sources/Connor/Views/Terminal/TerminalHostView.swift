@@ -102,66 +102,9 @@ struct TerminalHostView: NSViewRepresentable {
     }
 }
 
-/// A view that hosts a terminal for running Claude CLI
-struct ClaudeTerminalView: NSViewRepresentable {
-    let workingDirectory: URL
-
-    func makeNSView(context: Context) -> NSView {
-        let containerView = TerminalContainerView()
-        containerView.autoresizesSubviews = true
-
-        let terminalView = LocalProcessTerminalView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
-
-        // Configure appearance
-        terminalView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        terminalView.optionAsMetaKey = true
-        terminalView.processDelegate = context.coordinator
-
-        // Light theme: white background, black text
-        terminalView.nativeBackgroundColor = .white
-        terminalView.nativeForegroundColor = .black
-        terminalView.hideNativeScroller()
-
-        // Start claude via login shell to ensure correct working directory and PATH
-        terminalView.startLoginShell(
-            workingDirectory: workingDirectory,
-            command: "exec claude",
-            execName: "claude"
-        )
-
-        containerView.hostedTerminal = terminalView
-        terminalView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(terminalView)
-
-        NSLayoutConstraint.activate([
-            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-        ])
-
-        return containerView
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
-        func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
-        func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
-        func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
-        func processTerminated(source: TerminalView, exitCode: Int32?) {
-            // Claude exited - could restart or show message
-        }
-    }
-}
-
 /// NSViewRepresentable that uses TerminalManager for persistent sessions.
-/// Unlike ClaudeTerminalView, this retrieves cached terminals from the manager
-/// rather than creating new ones, allowing sessions to persist across switches.
+/// Retrieves cached terminals from the manager rather than creating new ones,
+/// allowing sessions to persist across workspace switches.
 struct PersistentClaudeTerminalView: NSViewRepresentable {
     let workspaceId: UUID
     let workingDirectory: URL
