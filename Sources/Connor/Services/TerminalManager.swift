@@ -164,7 +164,8 @@ final class TerminalManager: ObservableObject {
     /// Generates the shell command to start claude with appropriate session handling.
     /// Uses --resume if a session file exists, otherwise --session-id.
     private func claudeCommand(for workspaceId: UUID) -> String {
-        let sessionId = workspaceId.uuidString.lowercased()
+        let workspace = AppState.shared.workspaces.first { $0.id == workspaceId }
+        let sessionId = (workspace?.effectiveSessionId ?? workspaceId).uuidString.lowercased()
         return """
             clear
             if find ~/.claude/projects -maxdepth 2 -name '\(sessionId).jsonl' -print -quit 2>/dev/null | grep -q .; then

@@ -165,6 +165,13 @@ final class AppState: ObservableObject {
         saveWorkspaces()
     }
 
+    func resetClaudeSession(for workspaceId: UUID) {
+        guard let index = workspaces.firstIndex(where: { $0.id == workspaceId }) else { return }
+        workspaces[index].claudeSessionId = UUID()
+        saveWorkspaces()
+        TerminalManager.shared.removeTerminals(for: workspaceId)
+    }
+
     func moveWorkspaces(from source: IndexSet, to destination: Int) {
         var sorted = sortedWorkspaces
         sorted.move(fromOffsets: source, toOffset: destination)
