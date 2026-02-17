@@ -43,8 +43,7 @@ struct TerminalHostView: NSViewRepresentable {
         terminalView.startLoginShell(
             workingDirectory: workingDirectory,
             command: "exec \(shell)\(argsStr)",
-            extraEnvironment: environment,
-            execName: shell
+            extraEnvironment: environment
         )
 
         containerView.hostedTerminal = terminalView
@@ -125,8 +124,7 @@ struct ClaudeTerminalView: NSViewRepresentable {
         // Start claude via login shell to ensure correct working directory and PATH
         terminalView.startLoginShell(
             workingDirectory: workingDirectory,
-            command: "exec claude",
-            execName: "claude"
+            command: "exec claude"
         )
 
         containerView.hostedTerminal = terminalView

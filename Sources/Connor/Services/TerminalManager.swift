@@ -146,8 +146,7 @@ final class TerminalManager: ObservableObject {
         let claudeCmd = claudeCommand(for: workspaceId)
         cached.terminalView.startLoginShell(
             workingDirectory: workingDirectory,
-            command: claudeCmd,
-            execName: "claude"
+            command: claudeCmd
         )
     }
 
@@ -240,27 +239,25 @@ final class TerminalManager: ObservableObject {
         terminalView.nativeForegroundColor = ThemeManager.contrastingColor(for: backgroundColor)
         terminalView.hideNativeScroller()
 
+        // Start regular shell via exec (clean startup without visible cd command)
+        let env = ProcessInfo.processInfo.environment
+        let shell = command ?? (env["SHELL"] ?? "/bin/zsh")
+
         if isClaude {
             // Start claude via shell with session handling
             let claudeCmd = claudeCommand(for: workspaceId)
             terminalView.startLoginShell(
                 workingDirectory: workingDirectory,
-                command: claudeCmd,
-                execName: "claude"
+                command: claudeCmd
             )
         } else {
-            // Start regular shell via exec (clean startup without visible cd command)
-            let env = ProcessInfo.processInfo.environment
-            let shell = command ?? (env["SHELL"] ?? "/bin/zsh")
-
             // Shell-escape arguments using single quotes
             let quotedArgs = arguments.map { "'" + $0.replacingOccurrences(of: "'", with: "'\\''") + "'" }
             let argsStr = quotedArgs.isEmpty ? "" : " " + quotedArgs.joined(separator: " ")
 
             terminalView.startLoginShell(
                 workingDirectory: workingDirectory,
-                command: "exec \(shell)\(argsStr)",
-                execName: shell
+                command: "exec \(shell)\(argsStr)"
             )
         }
 
@@ -305,8 +302,7 @@ extension LocalProcessTerminalView {
     func startLoginShell(
         workingDirectory: URL,
         command: String,
-        extraEnvironment: [String: String] = [:],
-        execName: String? = nil
+        extraEnvironment: [String: String] = [:]
     ) {
         let parentEnv = ProcessInfo.processInfo.environment
         var env: [String: String] = [
@@ -329,7 +325,7 @@ extension LocalProcessTerminalView {
             executable: "/bin/zsh",
             args: ["-li", "-c", "cd \"\(workingDirectory.path)\" && \(command)"],
             environment: envStrings,
-            execName: execName ?? "/bin/zsh"
+            execName: "/bin/zsh"
         )
     }
 }
