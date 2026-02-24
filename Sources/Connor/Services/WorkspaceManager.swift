@@ -28,7 +28,7 @@ enum WorkspaceError: Error, LocalizedError {
 /// Protocol for workspace management operations
 protocol WorkspaceManagerProtocol {
     func createWorkspace(from sourceRepo: URL, preferences: Preferences) async throws -> Workspace
-    func deleteWorkspace(_ workspace: Workspace) async throws
+    func deleteWorkspace(_ workspace: Workspace, preferences: Preferences) async throws
     func openInEditor(_ workspace: Workspace, editor: ExternalEditor) throws
 }
 
@@ -87,21 +87,32 @@ final class WorkspaceManager: WorkspaceManagerProtocol {
         return Workspace(name: name, repository: repository)
     }
 
-    func deleteWorkspace(_ workspace: Workspace) async throws {
+    func deleteWorkspace(_ workspace: Workspace, preferences: Preferences) async throws {
         guard let primaryRepo = workspace.primaryRepository else {
             throw WorkspaceError.noRootPath
         }
 
-        // Remove the git worktree
-        try await gitService.removeWorktree(
-            at: primaryRepo.worktreePath,
-            sourceRepo: primaryRepo.sourceRepoURL
-        )
+        let worktreePath = primaryRepo.worktreePath
+        let sourceRepo = primaryRepo.sourceRepoURL
 
-        // Ensure directory is removed
-        if fileManager.fileExists(atPath: primaryRepo.worktreePath.path) {
-            try? fileManager.removeItem(at: primaryRepo.worktreePath)
-        }
+        // 1. Pre-move prune: clean any stale git worktree refs
+        try await gitService.removeWorktree(at: worktreePath, sourceRepo: sourceRepo)
+
+        // 2. Move the worktree directory to the archive
+        let archiveRoot = preferences.connorRootDirectory.appendingPathComponent(".archived")
+        try fileManager.createDirectory(at: archiveRoot, withIntermediateDirectories: true)
+
+        let dirName = worktreePath.lastPathComponent
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd'T'HHmmss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        let archiveName = "\(dirName)-\(formatter.string(from: Date()))"
+        let destination = archiveRoot.appendingPathComponent(archiveName)
+
+        try fileManager.moveItem(at: worktreePath, to: destination)
+
+        // 3. Post-move prune: cleans the now-stale worktree ref
+        try await gitService.pruneWorktrees(sourceRepo: sourceRepo)
     }
 
     func openInEditor(_ workspace: Workspace, editor: ExternalEditor) throws {

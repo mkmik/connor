@@ -88,17 +88,17 @@ struct WorkspaceRow: View {
 
             Divider()
 
-            Button("Delete", role: .destructive) {
+            Button("Archive", role: .destructive) {
                 showDeleteConfirmation = true
             }
         }
-        .alert("Delete Workspace", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
+        .alert("Archive Workspace", isPresented: $showDeleteConfirmation) {
+            Button("Archive", role: .destructive) {
                 deleteWorkspace()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Are you sure you want to delete \"\(workspace.effectiveName)\"? This will remove the worktree and cannot be undone.")
+            Text("Are you sure you want to archive \"\(workspace.effectiveName)\"? The worktree will be removed from git and moved to .archived.")
         }
     }
 
@@ -111,7 +111,7 @@ struct WorkspaceRow: View {
         Task {
             let manager = WorkspaceManager()
             do {
-                try await manager.deleteWorkspace(workspace)
+                try await manager.deleteWorkspace(workspace, preferences: appState.preferences)
                 await MainActor.run {
                     appState.deleteWorkspace(workspace)
                 }
