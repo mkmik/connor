@@ -94,11 +94,11 @@ struct WorkspaceListPane: View {
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
-        .alert("Delete Workspace", isPresented: Binding(
+        .alert("Archive Workspace", isPresented: Binding(
             get: { workspaceToDelete != nil },
             set: { if !$0 { workspaceToDelete = nil } }
         )) {
-            Button("Delete", role: .destructive) {
+            Button("Archive", role: .destructive) {
                 if let workspace = workspaceToDelete {
                     Task {
                         await deleteWorkspace(workspace)
@@ -111,7 +111,7 @@ struct WorkspaceListPane: View {
             }
         } message: {
             if let workspace = workspaceToDelete {
-                Text("Are you sure you want to delete \"\(workspace.effectiveName)\"? This will remove the worktree and cannot be undone.")
+                Text("Are you sure you want to archive \"\(workspace.effectiveName)\"? The worktree will be removed from git and moved to .archived.")
             }
         }
     }
@@ -119,7 +119,7 @@ struct WorkspaceListPane: View {
     private func deleteWorkspace(_ workspace: Workspace) async {
         let manager = WorkspaceManager()
         do {
-            try await manager.deleteWorkspace(workspace)
+            try await manager.deleteWorkspace(workspace, preferences: appState.preferences)
             await MainActor.run {
                 appState.deleteWorkspace(workspace)
             }

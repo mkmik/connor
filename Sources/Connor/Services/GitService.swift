@@ -101,6 +101,7 @@ enum GitError: Error, LocalizedError {
 protocol GitServiceProtocol {
     func createWorktree(from sourceRepo: URL, at path: URL, branch: String) async throws
     func removeWorktree(at path: URL, sourceRepo: URL) async throws
+    func pruneWorktrees(sourceRepo: URL) async throws
     func getCurrentBranch(at path: URL) async throws -> String
     func getStatus(at path: URL) async throws -> GitStatus
     func getDiffStats(at path: URL) async throws -> GitDiffStats
@@ -132,16 +133,13 @@ final class GitService: GitServiceProtocol {
     }
 
     func removeWorktree(at path: URL, sourceRepo: URL) async throws {
-        // First prune any stale worktrees
+        // Prune any stale worktrees; caller is responsible for moving/removing the directory
+        // and calling pruneWorktrees again afterward.
         _ = try? await runGitCommand(["worktree", "prune"], at: sourceRepo)
+    }
 
-        // Remove the worktree
-        let result = try await runGitCommand(["worktree", "remove", path.path, "--force"], at: sourceRepo)
-
-        if !result.success {
-            // Try removing the directory manually if git command fails
-            try? fileManager.removeItem(at: path)
-        }
+    func pruneWorktrees(sourceRepo: URL) async throws {
+        _ = try? await runGitCommand(["worktree", "prune"], at: sourceRepo)
     }
 
     func getCurrentBranch(at path: URL) async throws -> String {
