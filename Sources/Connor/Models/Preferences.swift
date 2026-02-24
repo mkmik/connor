@@ -50,6 +50,7 @@ struct Preferences: Codable, Equatable {
     var recentlyUsedCityNames: [String]
     var maxCityNameHistory: Int
     var defaultShell: String
+    var claudeBinaryName: String
     var gitlabURL: URL?
     var gitlabToken: String?
     var branchNamePrefix: String
@@ -82,6 +83,7 @@ struct Preferences: Codable, Equatable {
             recentlyUsedCityNames: [],
             maxCityNameHistory: 50,
             defaultShell: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh",
+            claudeBinaryName: "claude",
             gitlabURL: nil,
             gitlabToken: nil,
             branchNamePrefix: "connor",
@@ -109,6 +111,7 @@ struct Preferences: Codable, Equatable {
         recentlyUsedCityNames: [String],
         maxCityNameHistory: Int,
         defaultShell: String,
+        claudeBinaryName: String,
         gitlabURL: URL?,
         gitlabToken: String?,
         branchNamePrefix: String,
@@ -132,6 +135,7 @@ struct Preferences: Codable, Equatable {
         self.recentlyUsedCityNames = recentlyUsedCityNames
         self.maxCityNameHistory = maxCityNameHistory
         self.defaultShell = defaultShell
+        self.claudeBinaryName = claudeBinaryName
         self.gitlabURL = gitlabURL
         self.gitlabToken = gitlabToken
         self.branchNamePrefix = branchNamePrefix
@@ -160,6 +164,7 @@ struct Preferences: Codable, Equatable {
         recentlyUsedCityNames = try container.decode([String].self, forKey: .recentlyUsedCityNames)
         maxCityNameHistory = try container.decode(Int.self, forKey: .maxCityNameHistory)
         defaultShell = try container.decode(String.self, forKey: .defaultShell)
+        claudeBinaryName = try container.decodeIfPresent(String.self, forKey: .claudeBinaryName) ?? "claude"
         gitlabURL = try container.decodeIfPresent(URL.self, forKey: .gitlabURL)
         gitlabToken = try container.decodeIfPresent(String.self, forKey: .gitlabToken)
         branchNamePrefix = try container.decode(String.self, forKey: .branchNamePrefix)

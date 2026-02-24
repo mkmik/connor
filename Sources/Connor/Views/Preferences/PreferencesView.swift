@@ -46,6 +46,7 @@ struct GeneralPreferencesTab: View {
     @State private var selectedEditor: ExternalEditor = .cursor
     @State private var selectedTheme: AppTheme = .system
     @State private var branchPrefix: String = ""
+    @State private var claudeBinaryName: String = "claude"
     @State private var fontSize: Double = 13
     @State private var selectedFontName: String = ""  // empty string means system monospace
 
@@ -104,6 +105,17 @@ struct GeneralPreferencesTab: View {
             }
 
             Section {
+                TextField("Binary Name", text: $claudeBinaryName)
+                    .textFieldStyle(.roundedBorder)
+
+                Text("Name or path of the Claude CLI binary")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text("Claude CLI")
+            }
+
+            Section {
                 Picker("Appearance", selection: $selectedTheme) {
                     ForEach(AppTheme.allCases) { theme in
                         Text(theme.rawValue).tag(theme)
@@ -149,6 +161,7 @@ struct GeneralPreferencesTab: View {
             selectedEditor = appState.preferences.preferredEditor
             selectedTheme = appState.preferences.theme
             branchPrefix = appState.preferences.branchNamePrefix
+            claudeBinaryName = appState.preferences.claudeBinaryName
             fontSize = Double(appState.preferences.monospaceFontSize)
             selectedFontName = appState.preferences.monospaceFontName ?? ""
         }
@@ -162,6 +175,10 @@ struct GeneralPreferencesTab: View {
         }
         .onChange(of: branchPrefix) {
             appState.preferences.branchNamePrefix = branchPrefix
+            appState.savePreferences()
+        }
+        .onChange(of: claudeBinaryName) {
+            appState.preferences.claudeBinaryName = claudeBinaryName
             appState.savePreferences()
         }
         .onChange(of: fontSize) {
