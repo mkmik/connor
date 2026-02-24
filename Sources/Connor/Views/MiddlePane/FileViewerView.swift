@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FileViewerView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var themeManager: ThemeManager
     let fileURL: URL
     @State private var content: String = ""
     @State private var isLoading = true
@@ -23,6 +24,7 @@ struct FileViewerView: View {
                     ScrollView([.horizontal, .vertical]) {
                         Text(content)
                             .font(monospaceFont)
+                            .foregroundColor(Color(nsColor: ThemeManager.contrastingColor(for: themeManager.currentTheme.editorBackground.nsColor)))
                             .textSelection(.enabled)
                             .padding()
                             .frame(
@@ -32,7 +34,7 @@ struct FileViewerView: View {
                             )
                     }
                 }
-                .background(Color(nsColor: .textBackgroundColor))
+                .background(themeManager.currentTheme.editorBackground.color)
             }
         }
         .onAppear {
@@ -79,5 +81,6 @@ struct FileViewerView: View {
 #Preview {
     FileViewerView(fileURL: URL(fileURLWithPath: "/etc/hosts"))
         .environmentObject(AppState())
+        .environmentObject(ThemeManager.shared)
         .frame(width: 600, height: 400)
 }
