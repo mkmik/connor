@@ -140,6 +140,11 @@ struct NewWorkspaceSheet: View {
             .padding()
         }
         .frame(width: 500, height: 450)
+        .onAppear {
+            if selectedRepoURL == nil, let firstRepo = appState.preferences.recentRepositories.first {
+                selectedRepoURL = firstRepo
+            }
+        }
     }
 
     private func createWorkspace() {
