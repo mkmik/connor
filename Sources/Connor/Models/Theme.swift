@@ -67,6 +67,9 @@ struct Theme: Codable, Equatable, Identifiable, Hashable {
     var rightChangesBackground: ThemeColor
     var rightChecksBackground: ThemeColor
 
+    // Editor
+    var editorBackground: ThemeColor
+
     // Toolbars
     var centralToolbarBackground: ThemeColor
     var rightToolbarBackground: ThemeColor
@@ -83,7 +86,8 @@ struct Theme: Codable, Equatable, Identifiable, Hashable {
         rightChangesBackground: ThemeColor,
         rightChecksBackground: ThemeColor,
         centralToolbarBackground: ThemeColor,
-        rightToolbarBackground: ThemeColor
+        rightToolbarBackground: ThemeColor,
+        editorBackground: ThemeColor
     ) {
         self.id = id
         self.name = name
@@ -97,6 +101,36 @@ struct Theme: Codable, Equatable, Identifiable, Hashable {
         self.rightChecksBackground = rightChecksBackground
         self.centralToolbarBackground = centralToolbarBackground
         self.rightToolbarBackground = rightToolbarBackground
+        self.editorBackground = editorBackground
+    }
+
+    // MARK: - Codable (backward compatibility)
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, isBuiltIn
+        case centralTerminalBackground, rightTerminalBackground
+        case leftPaneBackground, leftWorkspaceListBackground
+        case rightFileManagerBackground, rightChangesBackground, rightChecksBackground
+        case centralToolbarBackground, rightToolbarBackground
+        case editorBackground
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
+        centralTerminalBackground = try container.decode(ThemeColor.self, forKey: .centralTerminalBackground)
+        rightTerminalBackground = try container.decode(ThemeColor.self, forKey: .rightTerminalBackground)
+        leftPaneBackground = try container.decode(ThemeColor.self, forKey: .leftPaneBackground)
+        leftWorkspaceListBackground = try container.decode(ThemeColor.self, forKey: .leftWorkspaceListBackground)
+        rightFileManagerBackground = try container.decode(ThemeColor.self, forKey: .rightFileManagerBackground)
+        rightChangesBackground = try container.decode(ThemeColor.self, forKey: .rightChangesBackground)
+        rightChecksBackground = try container.decode(ThemeColor.self, forKey: .rightChecksBackground)
+        centralToolbarBackground = try container.decode(ThemeColor.self, forKey: .centralToolbarBackground)
+        rightToolbarBackground = try container.decode(ThemeColor.self, forKey: .rightToolbarBackground)
+        editorBackground = try container.decodeIfPresent(ThemeColor.self, forKey: .editorBackground)
+            ?? ThemeColor(nsColor: .textBackgroundColor)
     }
 
     /// Creates a copy of this theme with a new ID and name
@@ -113,7 +147,8 @@ struct Theme: Codable, Equatable, Identifiable, Hashable {
             rightChangesBackground: rightChangesBackground,
             rightChecksBackground: rightChecksBackground,
             centralToolbarBackground: centralToolbarBackground,
-            rightToolbarBackground: rightToolbarBackground
+            rightToolbarBackground: rightToolbarBackground,
+            editorBackground: editorBackground
         )
     }
 
@@ -132,7 +167,8 @@ struct Theme: Codable, Equatable, Identifiable, Hashable {
         rightChangesBackground: ThemeColor(hex: "#FFFFFF"),
         rightChecksBackground: ThemeColor(hex: "#FFFFFF"),
         centralToolbarBackground: ThemeColor(hex: "#ECECEC"),
-        rightToolbarBackground: ThemeColor(hex: "#FFFFFF")
+        rightToolbarBackground: ThemeColor(hex: "#FFFFFF"),
+        editorBackground: ThemeColor(hex: "#FFFFFF")
     )
 
     /// Dark theme with dark gray/black backgrounds
@@ -148,7 +184,8 @@ struct Theme: Codable, Equatable, Identifiable, Hashable {
         rightChangesBackground: ThemeColor(hex: "#1E1E1E"),
         rightChecksBackground: ThemeColor(hex: "#1E1E1E"),
         centralToolbarBackground: ThemeColor(hex: "#3C3C3C"),
-        rightToolbarBackground: ThemeColor(hex: "#252526")
+        rightToolbarBackground: ThemeColor(hex: "#252526"),
+        editorBackground: ThemeColor(hex: "#1E1E1E")
     )
 
     /// All built-in themes

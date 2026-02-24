@@ -80,6 +80,18 @@ struct ThemeEditorView: View {
                     Text("Right Pane Content")
                 }
 
+                // Editor
+                Section {
+                    ColorEditRow(
+                        label: "Editor Background",
+                        color: $theme.editorBackground,
+                        disabled: theme.isBuiltIn,
+                        onSave: { onSave(theme) }
+                    )
+                } header: {
+                    Text("Editor")
+                }
+
                 // Toolbars
                 Section {
                     ColorEditRow(
