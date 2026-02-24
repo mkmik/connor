@@ -122,9 +122,10 @@ struct ClaudeTerminalView: NSViewRepresentable {
         terminalView.hideNativeScroller()
 
         // Start claude via login shell to ensure correct working directory and PATH
+        let bin = AppState.shared.preferences.claudeBinaryName
         terminalView.startLoginShell(
             workingDirectory: workingDirectory,
-            command: "exec claude"
+            command: "exec \(bin)"
         )
 
         containerView.hostedTerminal = terminalView

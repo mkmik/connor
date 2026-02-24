@@ -165,12 +165,13 @@ final class TerminalManager: ObservableObject {
     private func claudeCommand(for workspaceId: UUID) -> String {
         let workspace = AppState.shared.workspaces.first { $0.id == workspaceId }
         let sessionId = (workspace?.effectiveSessionId ?? workspaceId).uuidString.lowercased()
+        let bin = AppState.shared.preferences.claudeBinaryName
         return """
             clear
             if find ~/.claude/projects -maxdepth 2 -name '\(sessionId).jsonl' -print -quit 2>/dev/null | grep -q .; then
-                exec claude --resume \(sessionId)
+                exec \(bin) --resume \(sessionId)
             else
-                exec claude --session-id \(sessionId)
+                exec \(bin) --session-id \(sessionId)
             fi
             """
     }
