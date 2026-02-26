@@ -74,8 +74,20 @@ final class WorkspaceManager: WorkspaceManagerProtocol {
         // Create branch name
         let branchName = "\(preferences.branchNamePrefix)/\(worktreeDirName)"
 
+        // Fetch origin and branch from origin/main if available
+        var startPoint: String? = nil
+        if try await gitService.hasRemote("origin", at: sourceRepo) {
+            do {
+                try await gitService.fetch(remote: "origin", at: sourceRepo)
+            } catch {
+                // Fetch failure is non-fatal; fall back to branching from HEAD
+                print("Warning: git fetch origin failed: \(error.localizedDescription)")
+            }
+            startPoint = "origin/main"
+        }
+
         // Create the worktree
-        try await gitService.createWorktree(from: sourceRepo, at: worktreePath, branch: branchName)
+        try await gitService.createWorktree(from: sourceRepo, at: worktreePath, branch: branchName, startPoint: startPoint)
 
         // Create workspace model
         let repository = WorkspaceRepository(

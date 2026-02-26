@@ -99,20 +99,22 @@ enum GitError: Error, LocalizedError {
 
 /// Protocol for git operations
 protocol GitServiceProtocol {
-    func createWorktree(from sourceRepo: URL, at path: URL, branch: String) async throws
+    func createWorktree(from sourceRepo: URL, at path: URL, branch: String, startPoint: String?) async throws
     func removeWorktree(at path: URL, sourceRepo: URL) async throws
     func pruneWorktrees(sourceRepo: URL) async throws
     func getCurrentBranch(at path: URL) async throws -> String
     func getStatus(at path: URL) async throws -> GitStatus
     func getDiffStats(at path: URL) async throws -> GitDiffStats
     func isGitRepository(_ path: URL) async -> Bool
+    func hasRemote(_ name: String, at path: URL) async throws -> Bool
+    func fetch(remote: String, at path: URL) async throws
 }
 
 /// Implementation using git CLI
 final class GitService: GitServiceProtocol {
     private let fileManager = FileManager.default
 
-    func createWorktree(from sourceRepo: URL, at path: URL, branch: String) async throws {
+    func createWorktree(from sourceRepo: URL, at path: URL, branch: String, startPoint: String? = nil) async throws {
         // First check if the branch already exists
         let branchExists = try await branchExists(branch, at: sourceRepo)
 
@@ -121,8 +123,11 @@ final class GitService: GitServiceProtocol {
             // If branch exists, check it out in the worktree
             arguments = ["worktree", "add", path.path, branch]
         } else {
-            // Create new branch
+            // Create new branch: git worktree add -b <branch> <path> [<start-point>]
             arguments = ["worktree", "add", "-b", branch, path.path]
+            if let startPoint = startPoint {
+                arguments.append(startPoint)
+            }
         }
 
         let result = try await runGitCommand(arguments, at: sourceRepo)
@@ -224,21 +229,12 @@ final class GitService: GitServiceProtocol {
     }
 
     func getDiffStats(at path: URL) async throws -> GitDiffStats {
-        // Get diff stats comparing working tree to merge base with main/master
-        // First try to find the merge base with origin/main or origin/master
-        var baseBranch = "origin/main"
-
-        // Check if origin/main exists, otherwise try origin/master
+        // Get diff stats comparing working tree to merge base with origin/main
         let mainCheck = try await runGitCommand(["rev-parse", "--verify", "origin/main"], at: path)
-        if !mainCheck.success {
-            let masterCheck = try await runGitCommand(["rev-parse", "--verify", "origin/master"], at: path)
-            if masterCheck.success {
-                baseBranch = "origin/master"
-            } else {
-                // No remote tracking branch found, compare with HEAD
-                return try await getDiffStatsFromWorkingTree(at: path)
-            }
+        guard mainCheck.success else {
+            return try await getDiffStatsFromWorkingTree(at: path)
         }
+        let baseBranch = "origin/main"
 
         // Get merge base
         let mergeBaseResult = try await runGitCommand(["merge-base", baseBranch, "HEAD"], at: path)
@@ -353,6 +349,22 @@ final class GitService: GitServiceProtocol {
     func isGitRepository(_ path: URL) async -> Bool {
         let result = try? await runGitCommand(["rev-parse", "--git-dir"], at: path)
         return result?.success ?? false
+    }
+
+    func hasRemote(_ name: String, at path: URL) async throws -> Bool {
+        let result = try await runGitCommand(["remote"], at: path)
+        guard result.success else { return false }
+        let remotes = result.output
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .newlines)
+        return remotes.contains(name)
+    }
+
+    func fetch(remote: String, at path: URL) async throws {
+        let result = try await runGitCommand(["fetch", remote], at: path)
+        if !result.success {
+            throw GitError.commandFailed(result.error)
+        }
     }
 
     // MARK: - Private Helpers
