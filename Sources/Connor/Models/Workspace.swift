@@ -7,21 +7,39 @@ struct WorkspaceRepository: Identifiable, Codable, Hashable {
     var worktreePath: URL
     var branchName: String
     var isMainRepo: Bool
+    var useWorktrunk: Bool
     let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, sourceRepoURL, worktreePath, branchName, isMainRepo, useWorktrunk, createdAt
+    }
 
     init(
         id: UUID = UUID(),
         sourceRepoURL: URL,
         worktreePath: URL,
         branchName: String,
-        isMainRepo: Bool = true
+        isMainRepo: Bool = true,
+        useWorktrunk: Bool = false
     ) {
         self.id = id
         self.sourceRepoURL = sourceRepoURL
         self.worktreePath = worktreePath
         self.branchName = branchName
         self.isMainRepo = isMainRepo
+        self.useWorktrunk = useWorktrunk
         self.createdAt = Date()
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        sourceRepoURL = try container.decode(URL.self, forKey: .sourceRepoURL)
+        worktreePath = try container.decode(URL.self, forKey: .worktreePath)
+        branchName = try container.decode(String.self, forKey: .branchName)
+        isMainRepo = try container.decode(Bool.self, forKey: .isMainRepo)
+        useWorktrunk = try container.decodeIfPresent(Bool.self, forKey: .useWorktrunk) ?? false
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
 }
 

@@ -102,6 +102,13 @@ struct NewWorkspaceSheet: View {
                     .cornerRadius(8)
                 }
 
+                // Worktrunk toggle
+                Toggle("Use Worktrunk", isOn: $appState.preferences.useWorktrunk)
+                    .font(.system(size: 13))
+                    .onChange(of: appState.preferences.useWorktrunk) {
+                        appState.savePreferences()
+                    }
+
                 // Error message
                 if let error = errorMessage {
                     HStack {
