@@ -76,6 +76,10 @@ struct WorkspaceRow: View {
                 openInFinder()
             }
 
+            Button("Restart Session") {
+                appState.restartClaudeSession(for: workspace.id)
+            }
+
             Button("Close Session") {
                 appState.resetClaudeSession(for: workspace.id)
             }

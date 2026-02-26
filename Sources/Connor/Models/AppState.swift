@@ -165,6 +165,13 @@ final class AppState: ObservableObject {
         saveWorkspaces()
     }
 
+    func restartClaudeSession(for workspaceId: UUID) {
+        guard let index = workspaces.firstIndex(where: { $0.id == workspaceId }) else { return }
+        TerminalManager.shared.removeClaudeTerminal(for: workspaceId)
+        workspaces[index].lastAccessedAt = Date()
+        saveWorkspaces()
+    }
+
     func resetClaudeSession(for workspaceId: UUID) {
         guard let index = workspaces.firstIndex(where: { $0.id == workspaceId }) else { return }
         workspaces[index].claudeSessionId = UUID()
