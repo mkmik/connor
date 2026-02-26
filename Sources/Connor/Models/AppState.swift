@@ -236,9 +236,7 @@ final class AppState: ObservableObject {
 
     /// Refresh checks for a specific workspace
     func refreshChecks(for workspace: Workspace, sessionState: WorkspaceSessionState) {
-        guard preferences.gitlabURL != nil,
-              let token = preferences.gitlabToken,
-              !token.isEmpty else { return }
+        guard preferences.gitHostingConfig.isConfigured else { return }
 
         // Avoid duplicate fetches
         guard !sessionState.checksState.isFetching else { return }
@@ -246,11 +244,11 @@ final class AppState: ObservableObject {
         sessionState.checksState.isFetching = true
 
         Task {
-            let service = GitLabService { self.preferences }
+            let service = GitHostingProviderFactory.makeProvider { self.preferences.gitHostingConfig }
             do {
-                let mr = try await service.checkMRExists(for: workspace)
+                let review = try await service.findCodeReview(for: workspace)
                 await MainActor.run {
-                    sessionState.checksState.mergeRequest = mr
+                    sessionState.checksState.codeReview = review
                     sessionState.checksState.errorMessage = nil
                     sessionState.checksState.lastFetchedAt = Date()
                     sessionState.checksState.isFetching = false
@@ -306,7 +304,7 @@ enum FocusedTerminalArea: String {
 
 /// Cached CI/CD status for the Checks pane
 struct ChecksState {
-    var mergeRequest: GitLabMergeRequest?
+    var codeReview: CodeReview?
     var errorMessage: String?
     var lastFetchedAt: Date?
     var isFetching: Bool = false
@@ -317,8 +315,7 @@ struct ChecksState {
     }
 
     var hasPipelineRunning: Bool {
-        guard let pipeline = mergeRequest?.headPipeline else { return false }
-        return pipeline.status == "running" || pipeline.status == "pending"
+        codeReview?.pipeline?.status.isRunning ?? false
     }
 }
 

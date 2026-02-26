@@ -64,7 +64,7 @@ struct MainContentView: View {
 
             // Far right: Create MR button
             ToolbarItem(placement: .confirmationAction) {
-                CreateMRButton()
+                CreateCodeReviewButton()
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))

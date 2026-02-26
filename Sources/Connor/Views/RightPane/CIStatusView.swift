@@ -16,18 +16,17 @@ struct CIStatusView: View {
         sessionState?.checksState
     }
 
-    var hasGitLabConfig: Bool {
-        guard appState.preferences.gitlabURL != nil,
-              let token = appState.preferences.gitlabToken,
-              !token.isEmpty else {
-            return false
-        }
-        return true
+    private var providerType: GitHostingProviderType {
+        appState.preferences.gitHostingConfig.providerType
+    }
+
+    var hasHostingConfig: Bool {
+        appState.preferences.gitHostingConfig.isConfigured
     }
 
     var body: some View {
         Group {
-            if !hasGitLabConfig {
+            if !hasHostingConfig {
                 placeholderWithoutConfig
             } else if workspace == nil {
                 EmptyStateView(
@@ -49,32 +48,30 @@ struct CIStatusView: View {
 
     @ViewBuilder
     private func checksContent(_ state: ChecksState) -> some View {
-        if state.isFetching && state.mergeRequest == nil {
+        if state.isFetching && state.codeReview == nil {
             // Initial load - show spinner
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if let error = state.errorMessage, state.mergeRequest == nil {
+        } else if let error = state.errorMessage, state.codeReview == nil {
             // Error with no cached data
             errorView(error)
-        } else if let mr = state.mergeRequest {
-            // Show MR (may be refreshing in background)
-            mrStatusView(mr, isRefreshing: state.isFetching)
+        } else if let review = state.codeReview {
+            // Show code review (may be refreshing in background)
+            codeReviewStatusView(review, isRefreshing: state.isFetching)
         } else {
-            noMRView
+            noCodeReviewView
         }
     }
 
-    // MARK: - MR Status View
+    // MARK: - Code Review Status View
 
-    private func mrStatusView(_ mr: GitLabMergeRequest, isRefreshing: Bool) -> some View {
+    private func codeReviewStatusView(_ review: CodeReview, isRefreshing: Bool) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // MR Header
-                MRHeaderCard(mr: mr)
+                CodeReviewHeaderCard(review: review, providerType: providerType)
 
-                // Pipeline Status
-                if let pipeline = mr.headPipeline {
-                    PipelineStatusCard(pipeline: pipeline)
+                if let pipeline = review.pipeline {
+                    PipelineStatusCard(pipeline: pipeline, providerType: providerType)
                 } else {
                     NoPipelineCard()
                 }
@@ -82,13 +79,13 @@ struct CIStatusView: View {
                 // Actions
                 HStack {
                     Button {
-                        if let url = URL(string: mr.webUrl) {
+                        if let url = URL(string: review.webUrl) {
                             NSWorkspace.shared.open(url)
                         }
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.up.forward.square")
-                            Text("Open in GitLab")
+                            Text("Open in \(providerType.rawValue)")
                         }
                     }
                     .buttonStyle(.bordered)
@@ -117,13 +114,13 @@ struct CIStatusView: View {
         }
     }
 
-    // MARK: - No MR View
+    // MARK: - No Code Review View
 
-    private var noMRView: some View {
+    private var noCodeReviewView: some View {
         EmptyStateView(
             icon: "arrow.triangle.pull",
-            title: "No Merge Request",
-            subtitle: "Create an MR to see pipeline status"
+            title: "No \(providerType.codeReviewName)",
+            subtitle: "Create a \(providerType.codeReviewAbbreviation) to see pipeline status"
         )
     }
 
@@ -148,7 +145,7 @@ struct CIStatusView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - GitLab Not Configured
+    // MARK: - Not Configured
 
     private var placeholderWithoutConfig: some View {
         VStack(spacing: 16) {
@@ -159,11 +156,11 @@ struct CIStatusView: View {
                 .foregroundColor(.secondary.opacity(0.4))
 
             VStack(spacing: 4) {
-                Text("GitLab Not Configured")
+                Text("Git Hosting Not Configured")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.secondary)
 
-                Text("Configure your GitLab instance in Preferences to see CI status")
+                Text("Configure your \(providerType.rawValue) instance in Preferences to see CI status")
                     .font(.system(size: 13))
                     .foregroundColor(.secondary.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -208,10 +205,11 @@ struct CIStatusView: View {
     }
 }
 
-// MARK: - MR Header Card
+// MARK: - Code Review Header Card
 
-private struct MRHeaderCard: View {
-    let mr: GitLabMergeRequest
+private struct CodeReviewHeaderCard: View {
+    let review: CodeReview
+    let providerType: GitHostingProviderType
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -219,14 +217,14 @@ private struct MRHeaderCard: View {
                 Image(systemName: "arrow.triangle.pull")
                     .foregroundColor(.secondary)
 
-                Text("!\(mr.iid)")
+                Text("\(providerType.numberPrefix)\(review.number)")
                     .font(.system(size: 13, weight: .medium, design: .monospaced))
                     .foregroundColor(.secondary)
 
-                MRStateBadge(state: mr.state, isMerged: mr.isMerged)
+                CodeReviewStateBadge(state: review.state)
             }
 
-            Text(mr.title)
+            Text(review.title)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.primary)
                 .lineLimit(2)
@@ -237,11 +235,10 @@ private struct MRHeaderCard: View {
     }
 }
 
-// MARK: - MR State Badge
+// MARK: - Code Review State Badge
 
-private struct MRStateBadge: View {
-    let state: String
-    let isMerged: Bool
+private struct CodeReviewStateBadge: View {
+    let state: CodeReviewState
 
     var body: some View {
         Text(displayText)
@@ -254,23 +251,18 @@ private struct MRStateBadge: View {
     }
 
     private var displayText: String {
-        if isMerged {
-            return "Merged"
+        switch state {
+        case .open: return "Open"
+        case .merged: return "Merged"
+        case .closed: return "Closed"
         }
-        return state.capitalized
     }
 
     private var badgeColor: Color {
-        if isMerged {
-            return Color(red: 137/255, green: 87/255, blue: 229/255) // purple
-        }
         switch state {
-        case "opened":
-            return .green
-        case "closed":
-            return .red
-        default:
-            return .secondary
+        case .open: return .green
+        case .merged: return Color(red: 137/255, green: 87/255, blue: 229/255) // purple
+        case .closed: return .red
         }
     }
 }
@@ -278,7 +270,8 @@ private struct MRStateBadge: View {
 // MARK: - Pipeline Status Card
 
 private struct PipelineStatusCard: View {
-    let pipeline: GitLabPipeline
+    let pipeline: CIPipeline
+    let providerType: GitHostingProviderType
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -298,15 +291,15 @@ private struct PipelineStatusCard: View {
                             .font(.system(size: 11))
                     }
                     .buttonStyle(.borderless)
-                    .help("Open pipeline in GitLab")
+                    .help("Open pipeline in \(providerType.rawValue)")
                 }
             }
 
             HStack(spacing: 8) {
-                Image(systemName: statusIcon)
-                    .foregroundColor(statusColor)
+                Image(systemName: pipeline.status.systemImageName)
+                    .foregroundColor(pipeline.status.color)
 
-                Text(statusDisplayName)
+                Text(pipeline.status.displayName)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.primary)
 
@@ -318,75 +311,6 @@ private struct PipelineStatusCard: View {
             }
         }
         .padding(12)
-    }
-
-    private var statusIcon: String {
-        switch pipeline.status {
-        case "success":
-            return "checkmark.circle.fill"
-        case "running":
-            return "play.circle.fill"
-        case "pending", "waiting_for_resource", "preparing":
-            return "clock.fill"
-        case "failed":
-            return "xmark.circle.fill"
-        case "canceled":
-            return "stop.circle.fill"
-        case "skipped":
-            return "forward.circle.fill"
-        case "manual":
-            return "hand.raised.circle.fill"
-        case "created":
-            return "circle.dashed"
-        default:
-            return "questionmark.circle"
-        }
-    }
-
-    private var statusColor: Color {
-        switch pipeline.status {
-        case "success":
-            return .green
-        case "running":
-            return .blue
-        case "pending", "waiting_for_resource", "preparing", "manual":
-            return .orange
-        case "failed":
-            return .red
-        case "canceled", "skipped":
-            return .secondary
-        case "created":
-            return .secondary
-        default:
-            return .secondary
-        }
-    }
-
-    private var statusDisplayName: String {
-        switch pipeline.status {
-        case "success":
-            return "Passed"
-        case "running":
-            return "Running"
-        case "pending":
-            return "Pending"
-        case "failed":
-            return "Failed"
-        case "canceled":
-            return "Canceled"
-        case "skipped":
-            return "Skipped"
-        case "manual":
-            return "Manual"
-        case "created":
-            return "Created"
-        case "waiting_for_resource":
-            return "Waiting"
-        case "preparing":
-            return "Preparing"
-        default:
-            return pipeline.status.capitalized
-        }
     }
 }
 

@@ -51,8 +51,7 @@ struct Preferences: Codable, Equatable {
     var maxCityNameHistory: Int
     var defaultShell: String
     var claudeBinaryName: String
-    var gitlabURL: URL?
-    var gitlabToken: String?
+    var gitHostingConfig: GitHostingConfig
     var branchNamePrefix: String
     var lastSelectedWorkspaceId: UUID?
 
@@ -72,6 +71,35 @@ struct Preferences: Codable, Equatable {
     var monospaceFontSize: CGFloat
     var monospaceFontName: String?  // nil means system monospace
 
+    // Explicit CodingKeys including legacy keys for migration
+    enum CodingKeys: String, CodingKey {
+        case connorRootDirectory
+        case recentRepositories
+        case maxRecentRepos
+        case preferredEditor
+        case theme
+        case recentlyUsedCityNames
+        case maxCityNameHistory
+        case defaultShell
+        case claudeBinaryName
+        case gitHostingConfig
+        case branchNamePrefix
+        case lastSelectedWorkspaceId
+        case customThemes
+        case selectedThemeId
+        case isLeftPaneVisible
+        case isRightPaneVisible
+        case isBottomPanelExpanded
+        case bottomPanelHeight
+        case leftPaneWidth
+        case rightPaneWidth
+        case monospaceFontSize
+        case monospaceFontName
+        // Legacy keys (read-only, for migration from old preferences)
+        case gitlabURL
+        case gitlabToken
+    }
+
     static var `default`: Preferences {
         Preferences(
             connorRootDirectory: FileManager.default.homeDirectoryForCurrentUser
@@ -84,8 +112,7 @@ struct Preferences: Codable, Equatable {
             maxCityNameHistory: 50,
             defaultShell: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh",
             claudeBinaryName: "claude",
-            gitlabURL: nil,
-            gitlabToken: nil,
+            gitHostingConfig: GitHostingConfig(providerType: .gitlab, baseURL: nil, token: nil),
             branchNamePrefix: "connor",
             lastSelectedWorkspaceId: nil,
             customThemes: [],
@@ -112,8 +139,7 @@ struct Preferences: Codable, Equatable {
         maxCityNameHistory: Int,
         defaultShell: String,
         claudeBinaryName: String,
-        gitlabURL: URL?,
-        gitlabToken: String?,
+        gitHostingConfig: GitHostingConfig,
         branchNamePrefix: String,
         lastSelectedWorkspaceId: UUID?,
         customThemes: [Theme],
@@ -136,8 +162,7 @@ struct Preferences: Codable, Equatable {
         self.maxCityNameHistory = maxCityNameHistory
         self.defaultShell = defaultShell
         self.claudeBinaryName = claudeBinaryName
-        self.gitlabURL = gitlabURL
-        self.gitlabToken = gitlabToken
+        self.gitHostingConfig = gitHostingConfig
         self.branchNamePrefix = branchNamePrefix
         self.lastSelectedWorkspaceId = lastSelectedWorkspaceId
         self.customThemes = customThemes
@@ -152,7 +177,7 @@ struct Preferences: Codable, Equatable {
         self.monospaceFontName = monospaceFontName
     }
 
-    // Custom decoder to handle migration from older preferences without theme fields
+    // Custom decoder to handle migration from older preferences
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
@@ -165,8 +190,20 @@ struct Preferences: Codable, Equatable {
         maxCityNameHistory = try container.decode(Int.self, forKey: .maxCityNameHistory)
         defaultShell = try container.decode(String.self, forKey: .defaultShell)
         claudeBinaryName = try container.decodeIfPresent(String.self, forKey: .claudeBinaryName) ?? "claude"
-        gitlabURL = try container.decodeIfPresent(URL.self, forKey: .gitlabURL)
-        gitlabToken = try container.decodeIfPresent(String.self, forKey: .gitlabToken)
+
+        // Migration: try new gitHostingConfig first, fall back to legacy gitlabURL/gitlabToken
+        if let config = try container.decodeIfPresent(GitHostingConfig.self, forKey: .gitHostingConfig) {
+            gitHostingConfig = config
+        } else {
+            let legacyURL = try container.decodeIfPresent(URL.self, forKey: .gitlabURL)
+            let legacyToken = try container.decodeIfPresent(String.self, forKey: .gitlabToken)
+            gitHostingConfig = GitHostingConfig(
+                providerType: .gitlab,
+                baseURL: legacyURL,
+                token: legacyToken
+            )
+        }
+
         branchNamePrefix = try container.decode(String.self, forKey: .branchNamePrefix)
         lastSelectedWorkspaceId = try container.decodeIfPresent(UUID.self, forKey: .lastSelectedWorkspaceId)
 
@@ -185,6 +222,35 @@ struct Preferences: Codable, Equatable {
         // Font settings - default to 13pt system monospace if missing
         monospaceFontSize = try container.decodeIfPresent(CGFloat.self, forKey: .monospaceFontSize) ?? 13
         monospaceFontName = try container.decodeIfPresent(String.self, forKey: .monospaceFontName)
+    }
+
+    // Custom encoder to avoid writing legacy keys
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(connorRootDirectory, forKey: .connorRootDirectory)
+        try container.encode(recentRepositories, forKey: .recentRepositories)
+        try container.encode(maxRecentRepos, forKey: .maxRecentRepos)
+        try container.encode(preferredEditor, forKey: .preferredEditor)
+        try container.encode(theme, forKey: .theme)
+        try container.encode(recentlyUsedCityNames, forKey: .recentlyUsedCityNames)
+        try container.encode(maxCityNameHistory, forKey: .maxCityNameHistory)
+        try container.encode(defaultShell, forKey: .defaultShell)
+        try container.encode(claudeBinaryName, forKey: .claudeBinaryName)
+        try container.encode(gitHostingConfig, forKey: .gitHostingConfig)
+        try container.encode(branchNamePrefix, forKey: .branchNamePrefix)
+        try container.encodeIfPresent(lastSelectedWorkspaceId, forKey: .lastSelectedWorkspaceId)
+        try container.encode(customThemes, forKey: .customThemes)
+        try container.encodeIfPresent(selectedThemeId, forKey: .selectedThemeId)
+        try container.encode(isLeftPaneVisible, forKey: .isLeftPaneVisible)
+        try container.encode(isRightPaneVisible, forKey: .isRightPaneVisible)
+        try container.encode(isBottomPanelExpanded, forKey: .isBottomPanelExpanded)
+        try container.encodeIfPresent(bottomPanelHeight, forKey: .bottomPanelHeight)
+        try container.encodeIfPresent(leftPaneWidth, forKey: .leftPaneWidth)
+        try container.encodeIfPresent(rightPaneWidth, forKey: .rightPaneWidth)
+        try container.encode(monospaceFontSize, forKey: .monospaceFontSize)
+        try container.encodeIfPresent(monospaceFontName, forKey: .monospaceFontName)
+        // Note: gitlabURL and gitlabToken legacy keys are intentionally not written
     }
 
     mutating func addRecentRepository(_ url: URL) {
