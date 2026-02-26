@@ -88,7 +88,7 @@ class MainWindowController: NSWindowController, NSToolbarDelegate {
             return HostedToolbarItem(itemIdentifier, view: OpenInMenuButton())
 
         case .createMR:
-            return HostedToolbarItem(itemIdentifier, view: CreateMRButton())
+            return HostedToolbarItem(itemIdentifier, view: CreateCodeReviewButton())
 
         case .paneToggles:
             return HostedToolbarItem(itemIdentifier, view: PaneTogglesView())

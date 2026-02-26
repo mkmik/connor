@@ -5,7 +5,7 @@ struct PreferencesView: View {
         case general = "General"
         case themes = "Themes"
         case repositories = "Repositories"
-        case gitlab = "GitLab"
+        case hosting = "Git Hosting"
     }
 
     @State private var selectedTab: Tab = .general
@@ -30,11 +30,11 @@ struct PreferencesView: View {
                 }
                 .tag(Tab.repositories)
 
-            GitLabPreferencesTab()
+            GitHostingPreferencesTab()
                 .tabItem {
-                    Label("GitLab", systemImage: "checkmark.circle")
+                    Label("Git Hosting", systemImage: "checkmark.circle")
                 }
-                .tag(Tab.gitlab)
+                .tag(Tab.hosting)
         }
         .frame(width: 600, height: 500)
     }
@@ -278,10 +278,11 @@ struct RepositoriesPreferencesTab: View {
     }
 }
 
-struct GitLabPreferencesTab: View {
+struct GitHostingPreferencesTab: View {
     @EnvironmentObject var appState: AppState
-    @State private var gitlabURLString: String = ""
-    @State private var gitlabToken: String = ""
+    @State private var providerType: GitHostingProviderType = .gitlab
+    @State private var hostingURLString: String = ""
+    @State private var hostingToken: String = ""
     @State private var isTestingConnection = false
     @State private var connectionStatus: ConnectionStatus?
 
@@ -293,21 +294,32 @@ struct GitLabPreferencesTab: View {
     var body: some View {
         Form {
             Section {
-                TextField("GitLab URL", text: $gitlabURLString, prompt: Text("https://gitlab.example.com"))
-                    .textFieldStyle(.roundedBorder)
-
-                Text("Enter your self-hosted GitLab instance URL")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Picker("Provider", selection: $providerType) {
+                    ForEach(GitHostingProviderType.allCases) { type in
+                        Text(type.rawValue).tag(type)
+                    }
+                }
+                .pickerStyle(.segmented)
             } header: {
-                Text("GitLab Instance")
+                Text("Provider")
             }
 
             Section {
-                SecureField("Personal Access Token", text: $gitlabToken)
+                TextField("\(providerType.rawValue) URL", text: $hostingURLString, prompt: Text(providerType.urlPlaceholder))
                     .textFieldStyle(.roundedBorder)
 
-                Text("Create a token with api scope in GitLab > Settings > Access Tokens")
+                Text("Enter your \(providerType.rawValue) instance URL")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text("\(providerType.rawValue) Instance")
+            }
+
+            Section {
+                SecureField("Personal Access Token", text: $hostingToken)
+                    .textFieldStyle(.roundedBorder)
+
+                Text(providerType.tokenHelpText)
                     .font(.caption)
                     .foregroundColor(.secondary)
             } header: {
@@ -319,7 +331,7 @@ struct GitLabPreferencesTab: View {
                     Button("Test Connection") {
                         testConnection()
                     }
-                    .disabled(gitlabURLString.isEmpty || gitlabToken.isEmpty || isTestingConnection)
+                    .disabled(hostingURLString.isEmpty || hostingToken.isEmpty || isTestingConnection)
 
                     if isTestingConnection {
                         ProgressView()
@@ -352,9 +364,9 @@ struct GitLabPreferencesTab: View {
                 }
 
                 Button("Save") {
-                    saveGitLabSettings()
+                    saveHostingSettings()
                 }
-                .disabled(gitlabURLString.isEmpty)
+                .disabled(hostingURLString.isEmpty)
             } header: {
                 Text("Connection")
             }
@@ -362,20 +374,21 @@ struct GitLabPreferencesTab: View {
         .formStyle(.grouped)
         .padding()
         .onAppear {
-            gitlabURLString = appState.preferences.gitlabURL?.absoluteString ?? ""
-            gitlabToken = appState.preferences.gitlabToken ?? ""
+            let config = appState.preferences.gitHostingConfig
+            providerType = config.providerType
+            hostingURLString = config.baseURL?.absoluteString ?? ""
+            hostingToken = config.token ?? ""
         }
     }
 
     private func testConnection() {
-        // TODO: Implement actual GitLab API connection test
+        // TODO: Implement actual API connection test
         isTestingConnection = true
         connectionStatus = nil
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             isTestingConnection = false
-            // For now, just validate the URL format
-            if URL(string: gitlabURLString) != nil {
+            if URL(string: hostingURLString) != nil {
                 connectionStatus = .success("URL is valid (API test not implemented)")
             } else {
                 connectionStatus = .failure("Invalid URL format")
@@ -383,9 +396,12 @@ struct GitLabPreferencesTab: View {
         }
     }
 
-    private func saveGitLabSettings() {
-        appState.preferences.gitlabURL = URL(string: gitlabURLString)
-        appState.preferences.gitlabToken = gitlabToken.isEmpty ? nil : gitlabToken
+    private func saveHostingSettings() {
+        appState.preferences.gitHostingConfig = GitHostingConfig(
+            providerType: providerType,
+            baseURL: URL(string: hostingURLString),
+            token: hostingToken.isEmpty ? nil : hostingToken
+        )
         appState.savePreferences()
     }
 }
