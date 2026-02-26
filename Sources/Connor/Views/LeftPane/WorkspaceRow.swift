@@ -4,6 +4,8 @@ struct WorkspaceRow: View {
     let workspace: Workspace
     @EnvironmentObject var appState: AppState
     @State private var showDeleteConfirmation = false
+    @State private var showForceDeleteConfirmation = false
+    @State private var worktrunkErrorOutput = ""
 
     private var isSelected: Bool {
         appState.selectedWorkspaceId == workspace.id
@@ -104,6 +106,14 @@ struct WorkspaceRow: View {
         } message: {
             Text("Are you sure you want to archive \"\(workspace.effectiveName)\"? The worktree will be removed from git and moved to .archived.")
         }
+        .alert("Worktrunk Remove Failed", isPresented: $showForceDeleteConfirmation) {
+            Button("Force Remove", role: .destructive) {
+                forceDeleteWorkspace()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(worktrunkErrorOutput + "\n\nForce remove with -D?")
+        }
     }
 
     private func openInFinder() {
@@ -119,8 +129,31 @@ struct WorkspaceRow: View {
                 await MainActor.run {
                     appState.deleteWorkspace(workspace)
                 }
+            } catch let error as WorkspaceError {
+                if case .worktrunkRemoveFailed(let output) = error {
+                    await MainActor.run {
+                        worktrunkErrorOutput = output
+                        showForceDeleteConfirmation = true
+                    }
+                } else {
+                    print("Failed to delete workspace: \(error.localizedDescription)")
+                }
             } catch {
                 print("Failed to delete workspace: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func forceDeleteWorkspace() {
+        Task {
+            let manager = WorkspaceManager()
+            do {
+                try await manager.forceDeleteWorktrunkWorkspace(workspace, preferences: appState.preferences)
+                await MainActor.run {
+                    appState.deleteWorkspace(workspace)
+                }
+            } catch {
+                print("Failed to force delete workspace: \(error.localizedDescription)")
             }
         }
     }

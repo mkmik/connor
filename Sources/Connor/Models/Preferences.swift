@@ -53,6 +53,7 @@ struct Preferences: Codable, Equatable {
     var claudeBinaryName: String
     var gitHostingConfig: GitHostingConfig
     var branchNamePrefix: String
+    var useWorktrunk: Bool
     var lastSelectedWorkspaceId: UUID?
 
     // Theme system
@@ -84,6 +85,7 @@ struct Preferences: Codable, Equatable {
         case claudeBinaryName
         case gitHostingConfig
         case branchNamePrefix
+        case useWorktrunk
         case lastSelectedWorkspaceId
         case customThemes
         case selectedThemeId
@@ -114,6 +116,7 @@ struct Preferences: Codable, Equatable {
             claudeBinaryName: "claude",
             gitHostingConfig: GitHostingConfig(providerType: .gitlab, baseURL: nil, token: nil),
             branchNamePrefix: "connor",
+            useWorktrunk: false,
             lastSelectedWorkspaceId: nil,
             customThemes: [],
             selectedThemeId: Theme.light.id,
@@ -141,6 +144,7 @@ struct Preferences: Codable, Equatable {
         claudeBinaryName: String,
         gitHostingConfig: GitHostingConfig,
         branchNamePrefix: String,
+        useWorktrunk: Bool,
         lastSelectedWorkspaceId: UUID?,
         customThemes: [Theme],
         selectedThemeId: UUID?,
@@ -164,6 +168,7 @@ struct Preferences: Codable, Equatable {
         self.claudeBinaryName = claudeBinaryName
         self.gitHostingConfig = gitHostingConfig
         self.branchNamePrefix = branchNamePrefix
+        self.useWorktrunk = useWorktrunk
         self.lastSelectedWorkspaceId = lastSelectedWorkspaceId
         self.customThemes = customThemes
         self.selectedThemeId = selectedThemeId
@@ -205,6 +210,7 @@ struct Preferences: Codable, Equatable {
         }
 
         branchNamePrefix = try container.decode(String.self, forKey: .branchNamePrefix)
+        useWorktrunk = try container.decodeIfPresent(Bool.self, forKey: .useWorktrunk) ?? false
         lastSelectedWorkspaceId = try container.decodeIfPresent(UUID.self, forKey: .lastSelectedWorkspaceId)
 
         // New theme properties - use defaults if missing (migration from older versions)
@@ -239,6 +245,7 @@ struct Preferences: Codable, Equatable {
         try container.encode(claudeBinaryName, forKey: .claudeBinaryName)
         try container.encode(gitHostingConfig, forKey: .gitHostingConfig)
         try container.encode(branchNamePrefix, forKey: .branchNamePrefix)
+        try container.encode(useWorktrunk, forKey: .useWorktrunk)
         try container.encodeIfPresent(lastSelectedWorkspaceId, forKey: .lastSelectedWorkspaceId)
         try container.encode(customThemes, forKey: .customThemes)
         try container.encodeIfPresent(selectedThemeId, forKey: .selectedThemeId)
