@@ -13,6 +13,10 @@ struct WorkspaceRow: View {
         appState.diffStats(for: workspace.id)
     }
 
+    private var sessionSummary: String? {
+        appState.sessionSummary(for: workspace.id)
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             // Branch icon (always visible)
@@ -42,6 +46,13 @@ struct WorkspaceRow: View {
                     Text(timeAgo(from: workspace.lastAccessedAt))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
+                }
+
+                if let summary = sessionSummary {
+                    Text(summary)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary.opacity(0.7))
+                        .lineLimit(1)
                 }
             }
 
