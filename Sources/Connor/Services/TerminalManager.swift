@@ -126,6 +126,12 @@ final class TerminalManager: ObservableObject {
         }
     }
 
+    /// Removes the Claude terminal for a workspace (called on session restart).
+    func removeClaudeTerminal(for workspaceId: UUID) {
+        let key = claudeKey(for: workspaceId)
+        terminals.removeValue(forKey: key)
+    }
+
     /// Removes a specific terminal (called when additional terminal tab is closed).
     func removeTerminal(for workspaceId: UUID, terminalId: UUID) {
         let key = terminalKey(for: workspaceId, terminalId: terminalId)
