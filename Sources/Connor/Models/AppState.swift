@@ -18,8 +18,12 @@ final class AppState: ObservableObject {
     // Git diff stats per workspace (updated periodically)
     @Published var workspaceDiffStats: [UUID: GitDiffStats] = [:]
 
+    // Claude session summaries per workspace (updated periodically)
+    @Published var workspaceSessionSummaries: [UUID: String] = [:]
+
     private let preferencesService = PreferencesService()
     private let workspaceStorage = WorkspaceStorageService()
+    private let claudeSessionService = ClaudeSessionService()
 
     var selectedWorkspace: Workspace? {
         workspaces.first { $0.id == selectedWorkspaceId }
@@ -44,6 +48,9 @@ final class AppState: ObservableObject {
         // Start refreshing git diff stats
         refreshAllDiffStats()
         startDiffStatsRefreshTimer()
+        // Start refreshing session summaries
+        refreshAllSessionSummaries()
+        startSessionSummaryRefreshTimer()
         // Start refreshing CI checks
         startChecksRefreshTimer()
     }
@@ -144,6 +151,7 @@ final class AppState: ObservableObject {
     func deleteWorkspace(_ workspace: Workspace) {
         workspaces.removeAll { $0.id == workspace.id }
         sessionStates.removeValue(forKey: workspace.id)
+        workspaceSessionSummaries.removeValue(forKey: workspace.id)
         navigationHistory.remove(workspace.id)
 
         // Clean up persistent terminals for this workspace
@@ -230,6 +238,33 @@ final class AppState: ObservableObject {
 
     func diffStats(for workspaceId: UUID) -> GitDiffStats? {
         workspaceDiffStats[workspaceId]
+    }
+
+    // MARK: - Session Summaries
+
+    func refreshAllSessionSummaries() {
+        for workspace in workspaces {
+            guard let rootPath = workspace.rootPath else { continue }
+            let summary = claudeSessionService.sessionSummary(
+                for: workspace.effectiveSessionId, rootPath: rootPath
+            )
+            if workspaceSessionSummaries[workspace.id] != summary {
+                workspaceSessionSummaries[workspace.id] = summary
+            }
+        }
+    }
+
+    func sessionSummary(for workspaceId: UUID) -> String? {
+        workspaceSessionSummaries[workspaceId]
+    }
+
+    private func startSessionSummaryRefreshTimer() {
+        Task { @MainActor [weak self] in
+            while true {
+                try? await Task.sleep(for: .seconds(10))
+                self?.refreshAllSessionSummaries()
+            }
+        }
     }
 
     // MARK: - CI/CD Checks
